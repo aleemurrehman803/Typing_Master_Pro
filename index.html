@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO Meta Tags -->
+  <title>TypeMaster Pro - Professional Typing Platform | Learn & Get Certified</title>
+  <meta name="description"
+    content="Master your typing skills with TypeMaster Pro. Take typing tests, earn certificates, compete globally. Free courses for beginners to professionals. Start now!" />
+  <meta name="keywords"
+    content="typing test, WPM test, typing speed, typing certification, learn typing, typing practice, keyboard training" />
+  <meta name="author" content="TypeMaster Pro Team" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+
+  <!-- Mobile Optimized -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+  <!-- Security: Content Security Policy -->
+  <!-- TEMPORARILY DISABLED: CSP blocks Vite dev server. Re-enable for production with proper nonce/hash -->
+  <!-- <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://*.supabase.in https://worldtimeapi.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" /> -->
+</head>
+
+<body>
+  <!-- Root Element for React Application -->
+  <div id="root"></div>
+
+  <!-- DEBUG: Global Error Handler -->
+  <script>
+    window.onerror = function (message, source, lineno, colno, error) {
+      document.body.innerHTML = '<div style="color:red; background:white; font-size:16px; padding:20px; z-index:9999; position:fixed; top:0; left:0; width:100%; height:100%; overflow:auto;">' +
+        '<h1>⚠️ APPLICATION CRASH</h1>' +
+        '<p><strong>Error:</strong> ' + message + '</p>' +
+        '<p><strong>Location:</strong> ' + source + ':' + lineno + '</p>' +
+        '<pre style="background:#eee; padding:10px; border:1px solid #ccc;">' + (error?.stack || 'No stack trace') + '</pre>' +
+        '</div>';
+      console.error("GLOBAL CRASH CAUGHT:", error);
+    };
+  </script>
+
+  <!-- Main Entry Point Script -->
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
