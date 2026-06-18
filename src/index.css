@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+/**
+ * Tailwind CSS v4 Configuration
+ * Dark mode and base styles
+ */
+
+@theme {
+  /* Dark mode will use class-based approach */
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+
+  /* Light mode (default) */
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-200;
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* Dark mode */
+  .dark body {
+    @apply bg-slate-900 text-slate-100;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  .no-scroll {
+    overflow: hidden !important;
+  }
+}
+
+/* Realistic Physiological Heartbeat (Thump-Thump) */
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.5));
+  }
+
+  15% {
+    transform: scale(1.25);
+    filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.8));
+  }
+
+  30% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.5));
+  }
+
+  45% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 10px rgba(220, 38, 38, 0.7));
+  }
+
+  60% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.5));
+  }
+}
+
+/* Liquid Blood Drip Physics */
+@keyframes drip {
+  0% {
+    transform: translateY(0) scaleX(1) scaleY(1);
+    opacity: 0.8;
+  }
+
+  20% {
+    transform: translateY(5px) scaleX(0.9) scaleY(1.1);
+    /* Forming drop */
+  }
+
+  100% {
+    transform: translateY(80px) scaleX(0.5) scaleY(1.5);
+    /* Falling and stretching */
+    opacity: 0;
+  }
+}
+
+/* Blood Pool ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-drip {
+  animation: drip 2s cubic-bezier(0.5, 0, 1, 1) infinite;
+}
+
+/* Global Hot & Dynamic Scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  /* Radiant Rose to Orange Gradient - HOT */
+  background: linear-gradient(to bottom, #f43f5e, #f59e0b);
+  border: 4px solid transparent;
+  /* Slim by default */
+  background-clip: padding-box;
+  border-radius: 20px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #fb7185, #fbbf24);
+  border: 2px solid transparent;
+  /* Expands on hover */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #e11d48, #d97706);
+  border: 4px solid transparent;
+  background-clip: padding-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #f43f5e, #f59e0b);
+  border: 2px solid transparent;
+}
+
+/* Custom Scrollbar for specific containers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #6366f1, #a855f7);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Typewriter Cursor Blink Animation */
+@keyframes blink {
+
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ADDITIVE ENHANCEMENTS: Scroll-aware Header & Reduced Motion */
+:root {
+  --header-height: 4rem;
+}
+
+/* Scroll-aware Header State (Applied via body.is-scrolled) */
+body.is-scrolled header {
+  backdrop-filter: blur(24px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+  height: 3.5rem;
+  /* Slightly shrink header on scroll */
+}
+
+.dark body.is-scrolled header {
+  background-color: rgba(15, 23, 42, 0.7);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-heartbeat,
+  .animate-bounce,
+  .animate-pulse,
+  .animate-ping {
+    animation: none !important;
+  }
+}
+
+/* Modern Skeleton Shimmer Effect */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-box {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0;
+}
+
+.dark .skeleton-box {
+  background-color: #1e293b;
+}
+
+.skeleton-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0.5) 60%,
+      rgba(255, 255, 255, 0));
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton-box::after {
+  background-image: linear-gradient(90deg,
+      rgba(30, 41, 59, 0) 0,
+      rgba(30, 41, 59, 0.2) 20%,
+      rgba(51, 65, 85, 0.5) 60%,
+      rgba(30, 41, 59, 0));
+}
+
+/* Anti-Cheat & Security Badge Animations */
+@keyframes shield-glow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.8));
+  }
+}
+
+.security-verified {
+  animation: shield-glow 2s infinite ease-in-out;
+}
+
+/* Command Palette Customizations */
+.command-palette-input::placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.dark .command-palette-input::placeholder {
+  color: #475569;
+}
+
+/* KBD Styling */
+kbd {
+  @apply inline-flex items-center justify-center min-w-[1.5em] px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 shadow-sm;
+}
+
+/* Feature 13: Minimalist / Deep Focus Mode */
+body.deep-focus-mode aside,
+body.deep-focus-mode header,
+body.deep-focus-mode .test-unimportant {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+aside, header, .test-unimportant {
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}

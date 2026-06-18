@@ -1,0 +1,7 @@
+                )}\r
+            </div>\r
+        </div>\r
+    );\r
+};\r
+\r
+export default Profile;\r
