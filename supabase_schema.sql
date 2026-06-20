@@ -123,7 +123,7 @@ begin
   values (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- Trigger the function every time a user is created
 create trigger on_auth_user_created
@@ -203,7 +203,7 @@ begin
 
     return '{"success": true, "flagged": false}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- ==========================================
 -- 👻 MASTER ACTION PLAN: TASK 2 (GHOST HUNTER)
@@ -254,7 +254,7 @@ begin
 
     return '{"success": true, "flagged": false, "reason": "Human verified"}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- ==========================================
 -- 🏦 MASTER ACTION PLAN: TASK 3 (THE BANK)
@@ -318,7 +318,7 @@ begin
   values (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- Trigger the function every time a user is created
 create trigger on_auth_user_created
@@ -398,7 +398,7 @@ begin
 
     return '{"success": true, "flagged": false}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- ==========================================
 -- 👻 MASTER ACTION PLAN: TASK 2 (GHOST HUNTER)
@@ -449,7 +449,7 @@ begin
 
     return '{"success": true, "flagged": false, "reason": "Human verified"}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- ==========================================
 -- 🏦 MASTER ACTION PLAN: TASK 3 (THE BANK)
@@ -505,7 +505,7 @@ begin
 
     return '{"success": true, "message": "Bet placed successfully"}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;
 
 -- ==========================================
 -- 🌐 MASTER ACTION PLAN: TASK 4 (WEBSOCKET SEC)
@@ -555,4 +555,4 @@ begin
 
     return '{"success": true, "message": "Broadcast sent"}'::jsonb;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer SET search_path = public;

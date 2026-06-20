@@ -29,6 +29,13 @@ class SecureStorage {
         try {
             const prefixedKey = STORAGE_PREFIX + key;
             const encrypted = encryptData(value, ENCRYPTION_KEY);
+            
+            // PERSIST CRITICAL SESSION DATA IN SECURE COOKIES
+            if (key === 'token' || key === 'user') {
+                const maxAge = 30 * 24 * 60 * 60; // 30 days
+                document.cookie = `${prefixedKey}=${encodeURIComponent(encrypted)}; max-age=${maxAge}; path=/; secure; SameSite=Strict`;
+            }
+
             localStorage.setItem(prefixedKey, encrypted);
             return true;
         } catch (error) {
@@ -64,7 +71,24 @@ class SecureStorage {
     getItem(key, defaultValue = null) {
         try {
             const prefixedKey = STORAGE_PREFIX + key;
-            const encrypted = localStorage.getItem(prefixedKey);
+            let encrypted = null;
+
+            // ATTEMPT TO RETRIEVE CRITICAL SESSION DATA FROM COOKIES FIRST
+            if (key === 'token' || key === 'user') {
+                const nameEQ = prefixedKey + "=";
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i].trim();
+                    if (c.indexOf(nameEQ) === 0) {
+                        encrypted = decodeURIComponent(c.substring(nameEQ.length));
+                        break;
+                    }
+                }
+            }
+
+            if (!encrypted) {
+                encrypted = localStorage.getItem(prefixedKey);
+            }
 
             if (!encrypted) {
                 return defaultValue;
@@ -98,6 +122,12 @@ class SecureStorage {
     removeItem(key) {
         try {
             const prefixedKey = STORAGE_PREFIX + key;
+            
+            // CLEAN CRITICAL COOKIE SESSION
+            if (key === 'token' || key === 'user') {
+                document.cookie = `${prefixedKey}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; secure; SameSite=Strict`;
+            }
+
             localStorage.removeItem(prefixedKey);
             return true;
         } catch (error) {
@@ -105,6 +135,7 @@ class SecureStorage {
             return false;
         }
     }
+
 
     /**
      * Clear all TypeMaster storage

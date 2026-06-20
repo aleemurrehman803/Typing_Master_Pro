@@ -1,5 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { secureStorage } from '../utils/auth';
+import { rateLimiter } from '../utils/rateLimiter';
+
 
 /**
  * Hybrid Database Service
@@ -136,6 +138,10 @@ export const DbService = {
      * @param {object} testResult - Test score data
      */
     async saveTestResult(userId, testResult) {
+        if (!rateLimiter.isAllowed(`save_test_${userId}`, 10, 60000)) {
+            return { success: false, error: 'Too many test submissions. Please wait a moment.' };
+        }
+
         const { wpm, accuracy, duration, mistakes, test_mode, language, integrity_score, client_hash } = testResult;
         
         if (isSupabaseConfigured) {
@@ -232,6 +238,10 @@ export const DbService = {
      * @param {number} limit - Max rows
      */
     async getLeaderboard(limit = 100) {
+        if (!rateLimiter.isAllowed('get_leaderboard', 30, 60000)) {
+            return { success: false, error: 'Leaderboard rate limit exceeded. Please wait.' };
+        }
+
         if (isSupabaseConfigured) {
             try {
                 const { data, error } = await supabase
@@ -274,6 +284,10 @@ export const DbService = {
      * @param {object} certificate - Certificate details
      */
     async saveCertificate(userId, certificate) {
+        if (!rateLimiter.isAllowed(`save_cert_${userId}`, 5, 60000)) {
+            return { success: false, error: 'Too many certificate requests. Please wait.' };
+        }
+
         if (isSupabaseConfigured) {
             try {
                 const { data, error } = await supabase

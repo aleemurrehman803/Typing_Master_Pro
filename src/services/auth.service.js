@@ -1,6 +1,8 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { secureStorage, hashPassword, verifyPassword, generateToken } from '../utils/auth';
 import { simulateSocialLogin } from './socialAuth.jsx';
+import { rateLimiter } from '../utils/rateLimiter';
+
 
 /**
  * Hybrid Auth Service
@@ -17,6 +19,10 @@ export const AuthService = {
      * @param {string} password 
      */
     async login(email, password) {
+        if (!rateLimiter.isAllowed('auth_login', 5, 60000)) {
+            throw new Error('Too many login attempts. Please try again in a minute.');
+        }
+
         // STRATEGY 1: Try Supabase (if configured)
         if (isSupabaseConfigured) {
             try {
@@ -76,6 +82,10 @@ export const AuthService = {
      * @param {object} payload 
      */
     async register(payload) {
+        if (!rateLimiter.isAllowed('auth_register', 3, 60000)) {
+            throw new Error('Too many registration attempts. Please try again in a minute.');
+        }
+
         const { email, password, name } = payload;
 
         // STRATEGY 1: Try Supabase
