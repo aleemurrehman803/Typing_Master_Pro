@@ -40,11 +40,11 @@
   <!-- Security: Content Security Policy (Production) -->
   <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; 
-               script-src 'self'; 
+               script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
                style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
                img-src 'self' data: https:; 
-               font-src 'self' data: https://fonts.gstatic.com; 
-               connect-src 'self' https://*.supabase.co https://*.supabase.in https://worldtimeapi.org; 
+               font-src 'self' data: https:; 
+               connect-src 'self' https: wss:; 
                frame-ancestors 'none'; 
                base-uri 'self'; 
                form-action 'self';" />
