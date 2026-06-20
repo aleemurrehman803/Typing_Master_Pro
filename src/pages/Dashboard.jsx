@@ -16,6 +16,7 @@ import { compressImage } from '../utils/imageUtils';
 import COUNTRY_CODES, { POPULAR_COUNTRIES } from '../utils/countryCodes';
 import NGramChart from '../components/analytics/NGramChart';
 import { checkLevelUnlock, getLevelBadge, LEVEL_REQUIREMENTS, LEVELS } from '../utils/levelSystem';
+import SEOHead from '../components/SEOHead';
 
 // Static Chart Configurations
 const ChartTooltipStyle = {
@@ -327,6 +328,11 @@ const Dashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-12 relative">
+            <SEOHead
+                title="Dashboard - TypeMaster Pro"
+                description="Monitor your typing analytics, view charts, track keyboard layouts, and view earned typing badges on your personal dashboard."
+                schemaType="profile"
+            />
             {/* Notification Toast */}
             {notification && (
                 <div className={`fixed top-24 right-6 z-50 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right duration-300 ${notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-slate-900 text-white'

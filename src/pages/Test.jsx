@@ -24,6 +24,7 @@ import { ShieldCheck, ShieldAlert, Zap, Cpu, BrainCircuit, Loader2, Wand2, Keybo
 import { generateAIParagraph } from '../utils/aiGenerator';
 import { soundEngine } from '../utils/soundEngine';
 import DynamicBackground from '../components/features/DynamicBackground';
+import SEOHead from '../components/SEOHead';
 
 // --- 20 CURATED PARAGRAPHS ---
 const PRESET_PARAGRAPHS = {
@@ -482,6 +483,11 @@ const Test = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-sans transition-colors duration-300">
+            <SEOHead
+                title="Typing Speed Test & Practice - TypeMaster Pro"
+                description="Test your typing speed (WPM) and accuracy. Practice touch typing with adaptive difficulty levels, keyboard guides, and custom drills."
+                schemaType="webApplication"
+            />
             <div className="max-w-6xl mx-auto px-4 py-8">
 
                 {/* Header */}

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { KeyRound, ArrowRight, CheckCircle, AlertCircle, Loader, ShieldCheck } from 'lucide-react';
 import { secureStorage, hashPassword, verifyPassword } from '../utils/auth';
 import { validatePassword } from '../utils/validation';
+import SEOHead from '../components/SEOHead';
 
 /**
  * ForgotPassword Page Component
@@ -149,6 +150,11 @@ const ForgotPassword = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-4">
+            <SEOHead
+                title="Reset Password - TypeMaster Pro"
+                description="Recover your TypeMaster Pro account. Answer your security questions to securely reset your password."
+                schemaType="organization"
+            />
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">

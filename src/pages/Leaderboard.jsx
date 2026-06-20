@@ -3,6 +3,7 @@ import { Trophy, Medal, Award, TrendingUp, Clock, Star, Target, Zap, Crown, Chev
 import useAuthStore from '../store/useAuthStore';
 import { secureStorage } from '../utils/auth';
 import { DbService } from '../services/db.service';
+import SEOHead from '../components/SEOHead';
 
 /**
  * Leaderboard Page
@@ -158,6 +159,11 @@ const Leaderboard = () => {
 
     return (
         <div className="lb-root">
+            <SEOHead
+                title="Global Leaderboard - TypeMaster Pro"
+                description="Check the top typists on the global leaderboard. Compare speeds, WPM ratings, accuracy, and see who ranks as Champion!"
+                schemaType="webApplication"
+            />
 
             {/* ── Hero Header ─────────────────────────────────────────────── */}
             <div className="lb-hero">

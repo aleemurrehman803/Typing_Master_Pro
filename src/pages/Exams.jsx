@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import { Award, ShieldAlert, Zap, Trophy, Timer, RefreshCw, X, FileCheck, Play, ArrowLeft } from 'lucide-react';
 import TypingArea from '../components/features/TypingArea';
+import SEOHead from '../components/SEOHead';
 
 const EXAM_PROFILES = [
     {
@@ -244,6 +245,11 @@ const Exams = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-8">
+            <SEOHead
+                title="Typing Exams & Certification - TypeMaster Pro"
+                description="Test your professional typing capabilities in a secure environment. Earn high-status credentials and badges."
+                schemaType="course"
+            />
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>

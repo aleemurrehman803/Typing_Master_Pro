@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Award, CheckCircle2, XCircle, User, Mail, TrendingUp } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const Verify = () => {
     const { certificateId } = useParams();
@@ -103,6 +104,11 @@ const Verify = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-12 px-4">
+            <SEOHead
+                title={certificate ? `Verify Certificate: ${certificate.name} - TypeMaster Pro` : "Verify Typing Certificate - TypeMaster Pro"}
+                description={certificate ? `Verify typing certificate issued to ${certificate.name} with speed ${certificate.wpm} WPM and accuracy ${certificate.accuracy}%.` : "Verify official typing certificates issued by TypeMaster Pro."}
+                schemaType="webApplication"
+            />
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-green-200 mb-8">
                     <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6">

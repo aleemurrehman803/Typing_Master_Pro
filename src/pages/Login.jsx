@@ -6,6 +6,7 @@ import { Keyboard, LogIn, Eye, EyeOff, AlertCircle, Loader } from 'lucide-react'
 import SocialLoginButtons from '../components/ui/SocialLoginButtons';
 import { simulateSocialLogin } from '../services/socialAuth.jsx';
 import Captcha from '../components/security/Captcha';
+import SEOHead from '../components/SEOHead';
 
 /**
  * Enhanced Login Page Component
@@ -83,6 +84,11 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-4">
+            <SEOHead
+                title="Sign In - TypeMaster Pro"
+                description="Sign in to your TypeMaster Pro account to resume typing practice, lessons, competitive arenas, and access your profile stats."
+                schemaType="organization"
+            />
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 {/* Header Section */}
                 <div className="text-center mb-8">

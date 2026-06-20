@@ -16,26 +16,101 @@ const SEOHead = ({
     twitterCard = 'summary_large_image',
     author = 'TypeMaster Pro Team',
     robots = 'index, follow',
+    schemaType = 'webApplication',
     structuredData = null
 }) => {
-    // Default structured data
-    const defaultStructuredData = {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "TypeMaster Pro",
-        "description": description,
-        "url": canonical,
-        "applicationCategory": "EducationalApplication",
-        "operatingSystem": "All",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        },
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "1250"
+    // Determine dynamic structured data based on schemaType
+    const getStructuredData = () => {
+        if (structuredData) return structuredData;
+
+        switch (schemaType) {
+            case 'organization':
+                return {
+                    "@context": "https://schema.org",
+                    "@type": "Organization",
+                    "name": "TypeMaster Pro",
+                    "url": canonical,
+                    "logo": "https://typemasterpro.com/logo.png",
+                    "sameAs": [
+                        "https://twitter.com/typemasterpro",
+                        "https://facebook.com/typemasterpro"
+                    ]
+                };
+            case 'course':
+                return {
+                    "@context": "https://schema.org",
+                    "@type": "Course",
+                    "name": title.replace(" - TypeMaster Pro", "") || "Professional Touch Typing Course",
+                    "description": description,
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "TypeMaster Pro",
+                        "url": "https://typemasterpro.com"
+                    }
+                };
+            case 'faq':
+                return {
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": "How is WPM (Words Per Minute) calculated?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "WPM stands for Words Per Minute. It is calculated by dividing the total number of typed characters by 5, then dividing by the time spent in minutes, and subtracting the uncorrected errors."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Can I get a certificate on TypeMaster Pro?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes! You can get a typing certificate by completing the typing exams with at least 70% accuracy."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Is TypeMaster Pro free?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes, TypeMaster Pro provides free typing practice, courses, and speed tests."
+                            }
+                        }
+                    ]
+                };
+            case 'profile':
+                return {
+                    "@context": "https://schema.org",
+                    "@type": "ProfilePage",
+                    "dateCreated": "2026-06-20",
+                    "mainEntity": {
+                        "@type": "Person",
+                        "name": title.replace(" - TypeMaster Pro", "") || "User Profile",
+                        "jobTitle": "Typist"
+                    }
+                };
+            case 'webApplication':
+            default:
+                return {
+                    "@context": "https://schema.org",
+                    "@type": "WebApplication",
+                    "name": "TypeMaster Pro",
+                    "description": description,
+                    "url": canonical,
+                    "applicationCategory": "EducationalApplication",
+                    "operatingSystem": "All",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "0",
+                        "priceCurrency": "USD"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "ratingCount": "1250"
+                    }
+                };
         }
     };
 
@@ -69,7 +144,7 @@ const SEOHead = ({
 
             {/* Structured Data */}
             <script type="application/ld+json">
-                {JSON.stringify(structuredData || defaultStructuredData)}
+                {JSON.stringify(getStructuredData())}
             </script>
         </Helmet>
     );

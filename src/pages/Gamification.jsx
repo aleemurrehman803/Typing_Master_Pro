@@ -10,6 +10,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import SEOHead from '../components/SEOHead';
 
 // --- Utility Components ---
 const cn = (...inputs) => twMerge(clsx(inputs));
@@ -401,6 +402,11 @@ const NexusCommandCenter = () => {
 const Gamification = () => {
     return (
         <div className="min-h-screen relative overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-500 selection:bg-indigo-500/30">
+            <SEOHead
+                title="Quest Board & Armory - TypeMaster Pro"
+                description="Unlock typing achievements, earn coins, and redeem custom themes and keyboard skins in the Armory."
+                schemaType="webApplication"
+            />
             <ParticleBackground />
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-12">

@@ -14,6 +14,7 @@ import { BADGES } from '../utils/achievements';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { compressImage } from '../utils/imageUtils';
 import ProfileProgressIndicator from '../components/features/ProfileProgressIndicator';
+import SEOHead from '../components/SEOHead';
 
 const StatCard = ({ icon, label, value, unit, color, progress }) => {
     const colorClasses = {
@@ -1018,6 +1019,11 @@ const Profile = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-12 relative">
+            <SEOHead
+                title="User Profile - TypeMaster Pro"
+                description="View your typing speed history, accuracy charts, unlocked levels, typing certificates, and competitive tournament stats."
+                schemaType="profile"
+            />
             {notification && (
                 <div className={`fixed top-24 right-6 z-50 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right duration-300 ${notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-slate-900 text-white'}`}>
                     {notification.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}

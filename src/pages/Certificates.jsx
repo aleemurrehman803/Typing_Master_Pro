@@ -4,6 +4,7 @@ import { Award, Printer, Edit3, Calendar, User, Mail, Phone, FileText } from 'lu
 import useAuthStore from '../store/useAuthStore';
 import signatureImg from '../assets/signature.png';
 import { DbService } from '../services/db.service';
+import SEOHead from '../components/SEOHead';
 
 const Certificates = () => {
     const { user } = useAuthStore();
@@ -119,6 +120,11 @@ const Certificates = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-8">
+            <SEOHead
+                title="Typing Certificates - TypeMaster Pro"
+                description="Generate, customize, print, and share your official typing certificates to showcase your WPM speed and accuracy."
+                schemaType="webApplication"
+            />
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
                 <div>

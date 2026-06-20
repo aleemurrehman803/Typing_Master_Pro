@@ -5,6 +5,7 @@ import { UserPlus, Eye, EyeOff, AlertCircle, CheckCircle, Loader } from 'lucide-
 import { validatePassword } from '../utils/validation';
 import SocialLoginButtons from '../components/ui/SocialLoginButtons';
 import { simulateSocialLogin } from '../services/socialAuth.jsx';
+import SEOHead from '../components/SEOHead';
 
 /**
  * Enhanced Register Page Component
@@ -114,6 +115,11 @@ const Register = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 p-4 py-12">
+            <SEOHead
+                title="Sign Up - TypeMaster Pro"
+                description="Create your TypeMaster Pro account to start learning touch typing, taking exams, unlocking badges, and tracking your speed improvements."
+                schemaType="organization"
+            />
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 {/* Header Section */}
                 <div className="text-center mb-8">
