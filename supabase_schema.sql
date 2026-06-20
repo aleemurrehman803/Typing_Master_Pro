@@ -279,13 +279,13 @@ returns numeric as $$
 declare
     v_balance numeric;
 begin
-    select coalesce(sum(amount), 0) into v_balance
-    from public.financial_ledger
-    where user_id = p_user_id;
+    select coalesce(wallet_balance, 0) into v_balance
+    from public.profiles
+    where id = p_user_id;
     
     return v_balance;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer SET search_path = public;
 
 -- 15. Atomic Bet Placement RPC
 create or replace function public.place_bet(
@@ -474,13 +474,13 @@ returns numeric as $$
 declare
     v_balance numeric;
 begin
-    select coalesce(sum(amount), 0) into v_balance
-    from public.financial_ledger
-    where user_id = p_user_id;
+    select coalesce(wallet_balance, 0) into v_balance
+    from public.profiles
+    where id = p_user_id;
     
     return v_balance;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer SET search_path = public;
 
 -- 15. Atomic Bet Placement RPC
 create or replace function public.place_bet(
@@ -556,3 +556,70 @@ begin
     return '{"success": true, "message": "Broadcast sent"}'::jsonb;
 end;
 $$ language plpgsql security definer SET search_path = public;
+
+-- ==========================================
+-- 🚀 OPTIMIZATION ADDITIONS: PHASE C
+-- ==========================================
+
+-- 1. Create compound index for test results sorting
+create index if not exists idx_test_results_user_date on public.test_results(user_id, created_at desc);
+
+-- 2. Alter profiles to support cached wallet balance
+alter table public.profiles add column if not exists wallet_balance numeric(10, 2) default 0.00;
+
+-- 3. Backfill existing balances from financial_ledger
+update public.profiles p
+set wallet_balance = (
+    select coalesce(sum(amount), 0)
+    from public.financial_ledger l
+    where l.user_id = p.id
+);
+
+-- 4. Trigger to update cached balance automatically
+create or replace function public.update_cached_wallet_balance()
+returns trigger as $$
+begin
+    if (TG_OP = 'INSERT') then
+        update public.profiles
+        set wallet_balance = coalesce(wallet_balance, 0) + NEW.amount
+        where id = NEW.user_id;
+    elsif (TG_OP = 'DELETE') then
+        update public.profiles
+        set wallet_balance = coalesce(wallet_balance, 0) - OLD.amount
+        where id = OLD.user_id;
+    elsif (TG_OP = 'UPDATE') then
+        update public.profiles
+        set wallet_balance = coalesce(wallet_balance, 0) - OLD.amount + NEW.amount
+        where id = NEW.user_id;
+    end if;
+    return null;
+end;
+$$ language plpgsql security definer SET search_path = public;
+
+create or replace trigger trigger_update_wallet_balance
+after insert or update or delete on public.financial_ledger
+for each row execute function public.update_cached_wallet_balance();
+
+-- 5. Real-time stream pruner function
+create or replace function public.prune_old_realtime_streams()
+returns void as $$
+begin
+    delete from public.realtime_streams
+    where created_at < now() - interval '2 hours';
+end;
+$$ language plpgsql security definer SET search_path = public;
+
+-- 6. Schedule pruner every hour
+do $$
+begin
+    if exists (
+        select 1 from pg_available_extensions where name = 'pg_cron'
+    ) then
+        create extension if not exists pg_cron;
+        perform cron.schedule('prune-realtime-streams-every-hour', '0 * * * *', 'select public.prune_old_realtime_streams();');
+    end if;
+exception
+    when others then
+        raise warning 'pg_cron could not be initialized: %', SQLERRM;
+end;
+$$;
