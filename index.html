@@ -48,6 +48,28 @@
                frame-ancestors 'none'; 
                base-uri 'self'; 
                form-action 'self';" />
+
+  <!-- Redirect custom 404 paths back to React Router -->
+  <script type="text/javascript">
+    (function(l) {
+      if (l.search[1] === 'p') {
+        var decoded = l.search.slice(1).split('&').map(function(s) {
+          return s.replace(/~and~/g, '&')
+        }).reduce(function(r, q) {
+          var p = q.split('=');
+          r[p[0]] = p[1];
+          return r;
+        }, {});
+        if (decoded.p !== undefined) {
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + (decoded.p || '') +
+            (decoded.q ? ('?' + decoded.q) : '') +
+            l.hash
+          );
+        }
+      }
+    }(window.location));
+  </script>
 </head>
 
 <body>
