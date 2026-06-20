@@ -40,6 +40,13 @@ const useTypingEngine = (text, duration = 60) => {
     const intervalRef = useRef(null);
     const startTimeRef = useRef(null);
 
+    const finishTest = useCallback(() => {
+        clearInterval(intervalRef.current);
+        setIsActive(false);
+        setIsFinished(true);
+        workerRef.current?.postMessage({ type: 'FINALIZE' });
+    }, []);
+
     // Initialize Worker
     useEffect(() => {
         workerRef.current = new Worker(new URL('../workers/typingWorker.js', import.meta.url), {
@@ -91,12 +98,6 @@ const useTypingEngine = (text, duration = 60) => {
         workerRef.current?.postMessage({ type: 'INIT', payload: { text } });
     }, [text]);
 
-    const finishTest = useCallback(() => {
-        clearInterval(intervalRef.current);
-        setIsActive(false);
-        setIsFinished(true);
-        workerRef.current?.postMessage({ type: 'FINALIZE' });
-    }, []);
 
     const startTest = useCallback(() => {
         if (!isActive && !isFinished) {

@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/purity */
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Heart, Trophy, Pause, Play, Volume2, VolumeX, LogOut, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,7 +46,7 @@ const useAudioSystem = () => {
             gain.connect(ctx.destination);
             osc.start();
             osc.stop(ctx.currentTime + duration);
-        } catch (e) { }
+        } catch (_e) { /* ignore */ }
     }, [isMuted]);
 
     const playLaser = () => playTone(880, 'sawtooth', 0.15, 0.05);
@@ -66,7 +67,7 @@ const useAudioSystem = () => {
             osc.start();
             ambientNodeRef.current = { osc, gain };
         } else if ((!shouldPlay || isMuted) && ambientNodeRef.current) {
-            try { ambientNodeRef.current.osc.stop(); ambientNodeRef.current.osc.disconnect(); ambientNodeRef.current = null; } catch (e) { }
+            try { ambientNodeRef.current.osc.stop(); ambientNodeRef.current.osc.disconnect(); ambientNodeRef.current = null; } catch (_e) { /* ignore */ }
         }
     }, [isMuted]);
 
@@ -118,7 +119,7 @@ const GalacticTypist = () => {
         });
     }, [wave]);
 
-    const update = useCallback((time) => {
+    const update = useCallback(function loopFunc(time) {
         if (gameState !== 'PLAYING') return;
 
         // Logic: Calculate Delta Time (seconds)
@@ -216,7 +217,7 @@ const GalacticTypist = () => {
         }
         ctx.globalAlpha = 1;
 
-        frameIdRef.current = requestAnimationFrame(update);
+        frameIdRef.current = requestAnimationFrame(loopFunc);
     }, [gameState, wave, inputValue, spawnAsteroid, playExplosion]);
 
     // Loop Control

@@ -18,8 +18,8 @@ const ForgotPassword = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const navigate = useNavigate();
+    const [_success, setSuccess] = useState('');
+    const _navigate = useNavigate();
 
     // Clear error when step changes
     useEffect(() => {

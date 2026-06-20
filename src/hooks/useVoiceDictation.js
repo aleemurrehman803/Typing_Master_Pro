@@ -21,6 +21,7 @@ export const useVoiceDictation = (onResult) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (SpeechRecognition) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsSupported(true);
             recognitionRef.current = new SpeechRecognition();
             recognitionRef.current.continuous = true;

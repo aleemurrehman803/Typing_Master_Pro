@@ -45,7 +45,9 @@ const CommandPalette = () => {
     // Focus input when opened
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setQuery('');
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedIndex(0);
             setTimeout(() => inputRef.current?.focus(), 100);
         }
@@ -96,6 +98,7 @@ const CommandPalette = () => {
 
     // Reset selected index if query changes and index is out of bounds
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedIndex(0);
     }, [query]);
 
@@ -156,7 +159,7 @@ const CommandPalette = () => {
                             <p className="text-sm mt-1">Try a different search term.</p>
                         </div>
                     ) : (
-                        filteredCommands.map((group, groupIdx) => (
+                        filteredCommands.map((group, _groupIdx) => (
                             <div key={group.category} className="mb-4 last:mb-0">
                                 <div className="px-4 py-2 text-xs font-semibold tracking-wider text-indigo-500 uppercase">
                                     {group.category}

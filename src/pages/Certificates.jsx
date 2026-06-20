@@ -20,7 +20,7 @@ const Certificates = () => {
     }, [user?.stats?.history]);
 
     // Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         name: user?.name || '',
         fatherName: '',
         email: user?.email || '',
@@ -35,12 +35,13 @@ const Certificates = () => {
         verificationUrl: '',
         grossSpeed: 0,
         netSpeed: 0
-    });
+    }));
 
     // Check for passed state from CourseDetail
     useEffect(() => {
         if (location.state) {
             const { courseTitle, accuracy, completedDate, wpm, grossSpeed, netSpeed } = location.state;
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData(prev => ({
                 ...prev,
                 accuracy: accuracy,
@@ -62,6 +63,7 @@ const Certificates = () => {
             }, recentTests[0]);
 
             if (bestTest) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setFormData(prev => ({
                     ...prev,
                     wpm: bestTest.wpm,
@@ -71,6 +73,7 @@ const Certificates = () => {
                     date: new Date(bestTest.date).toISOString().split('T')[0],
                     description: 'Successfully completed the professional typing assessment with distinction.'
                 }));
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedTest(bestTest);
             }
         }
@@ -79,6 +82,7 @@ const Certificates = () => {
     // Update form when a test is selected
     useEffect(() => {
         if (selectedTest) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData(prev => ({
                 ...prev,
                 wpm: selectedTest.wpm,

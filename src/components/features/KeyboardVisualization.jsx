@@ -88,7 +88,7 @@ const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
         return keyFingerMap[currentChar.toLowerCase()];
     };
 
-    const currentFinger = getCurrentFinger();
+    const _currentFinger = getCurrentFinger();
 
     const renderKey = (char, finger) => {
         const isActive = currentChar && currentChar.toLowerCase() === char.toLowerCase();

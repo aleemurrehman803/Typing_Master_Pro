@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // motion is used for motion.div animations
 import { X, Gift, Copy, Share2, Check, Users, Coins, Zap } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 

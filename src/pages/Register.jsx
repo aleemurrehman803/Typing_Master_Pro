@@ -28,6 +28,7 @@ const Register = () => {
     useEffect(() => {
         if (password) {
             const validation = validatePassword(password);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPasswordStrength({
                 strength: validation.strength,
                 label: validation.strengthLabel,
@@ -41,6 +42,7 @@ const Register = () => {
     // Check password match
     useEffect(() => {
         if (confirmPassword) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPasswordMatch(password === confirmPassword);
         }
     }, [password, confirmPassword]);

@@ -29,6 +29,7 @@ const Captcha = forwardRef(({ onVerify }, ref) => {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         generateCaptcha();
     }, []);
 

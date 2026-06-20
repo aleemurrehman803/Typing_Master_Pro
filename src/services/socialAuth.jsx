@@ -91,7 +91,7 @@ export const simulateSocialLogin = async (providerId) => {
                 };
 
                 resolve(mockUserData);
-            } catch (error) {
+            } catch (_error) {
                 reject(new Error(`Failed to login with ${providerId}`));
             }
         }, 1000); // Simulate network delay

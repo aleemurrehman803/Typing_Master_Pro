@@ -6,8 +6,8 @@ import useSettingsStore from '../../store/useSettingsStore';
 
 const ArenaShop = () => {
     const navigate = useNavigate();
-    const { user, spendCoins } = useAuthStore();
-    const { setSoundProfile, soundProfile } = useSettingsStore();
+    const { user: _user, spendCoins } = useAuthStore();
+    const { setSoundProfile, soundProfile: _soundProfile } = useSettingsStore();
 
     // Live coins count from localStorage or user state
     const [coins, setCoins] = useState(() => parseInt(localStorage.getItem('arena_coins') || '0'));

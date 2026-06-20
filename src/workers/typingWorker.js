@@ -89,7 +89,7 @@ self.onmessage = async (e) => {
     const { type, payload } = e.data;
 
     switch (type) {
-        case 'INIT':
+        case 'INIT': {
             referenceText = payload.text;
             typedBuffer = "";
             keystrokes = [];
@@ -102,8 +102,9 @@ self.onmessage = async (e) => {
                 self.postMessage({ type: 'CRYPTO_INIT', payload: { nonce: hashChain.nonce } });
             }
             break;
+        }
 
-        case 'PROCESS_INPUT':
+        case 'PROCESS_INPUT': {
             const { value, timestamp } = payload;
 
             // Log keystroke for anti-cheat
@@ -153,8 +154,9 @@ self.onmessage = async (e) => {
                 }
             });
             break;
+        }
 
-        case 'FINALIZE':
+        case 'FINALIZE': {
             const integrity = analyzeIntegrity(keystrokes);
             const nGrams = analyzeNGrams(keystrokes);
 
@@ -173,6 +175,7 @@ self.onmessage = async (e) => {
                 }
             });
             break;
+        }
 
     }
 };

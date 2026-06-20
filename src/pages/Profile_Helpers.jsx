@@ -1,4 +1,4 @@
-
+/* eslint-disable react-refresh/only-export-components */
 const StatCard = ({ icon, label, value, unit, color, progress }) => {
     const colorClasses = {
         indigo: 'from-indigo-500 to-indigo-600',

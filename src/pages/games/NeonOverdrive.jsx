@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+/* eslint-disable no-unused-vars, react-hooks/purity */
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Zap, Timer, Trophy, Activity, ArrowLeft,

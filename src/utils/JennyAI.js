@@ -125,7 +125,7 @@ export class JennyAI {
     /**
      * 11. Generate custom drill from weak words
      */
-    generateCustomDrill(errors, wordList) {
+    generateCustomDrill(errors, _wordList) {
         const weakWords = new Set();
         errors.forEach(error => {
             const word = this.extractWord(error.context);
@@ -197,7 +197,7 @@ export class JennyAI {
      * Generate contextual coaching message
      */
     generateCoachingMessage(context) {
-        const { wpm, accuracy, errors, combo, testComplete, isImproving } = context;
+        const { wpm, accuracy, errors, combo, testComplete, isImproving: _isImproving } = context;
 
         // Performance-based responses
         if (testComplete) {
@@ -292,7 +292,7 @@ export class JennyAI {
         return messages[Math.floor(Math.random() * messages.length)];
     }
 
-    getEncouragingMessage(wpm, accuracy) {
+    getEncouragingMessage(_wpm, _accuracy) {
         const messages = [
             "Keep going! You're doing great! 💪",
             "Nice rhythm! Stay focused! 🎯",

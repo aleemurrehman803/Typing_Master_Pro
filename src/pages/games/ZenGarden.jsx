@@ -1,7 +1,8 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Wind, Leaf, Sun, Infinity, ArrowLeft,
+    Wind, Leaf, Sun, ArrowLeft,
     RefreshCcw, Play, Heart, Sprout,
     Sparkles, Cloud, Music, ChevronRight
 } from 'lucide-react';

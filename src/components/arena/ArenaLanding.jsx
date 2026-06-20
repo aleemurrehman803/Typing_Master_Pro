@@ -12,7 +12,7 @@ const ArenaLanding = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
 
-    const [streamerMode, setStreamerMode] = useState(false);
+    const [streamerMode, _setStreamerMode] = useState(false);
 
     // --- Team Competitions States ---
     const [activeLobbyTab, setActiveLobbyTab] = useState('tiers'); // 'tiers' | 'teams'
@@ -30,7 +30,7 @@ const ArenaLanding = () => {
     const [teamSearchTime, setTeamSearchTime] = useState(0);
     const [teamBattleResult, setTeamBattleResult] = useState(null);
 
-    const [teamLeaderboard, setTeamLeaderboard] = useState([
+    const [teamLeaderboard, _setTeamLeaderboard] = useState([
         { name: 'Alpha Typists', tag: 'ALP', emoji: '👑', elo: 1850, members: 3, wpm: 88 },
         { name: 'Finger Speedsters', tag: 'FSP', emoji: '⚡', elo: 1720, members: 4, wpm: 76 },
         { name: 'Qwerty Gods', tag: 'QWG', emoji: '🔥', elo: 1690, members: 3, wpm: 74 },
@@ -95,24 +95,6 @@ const ArenaLanding = () => {
         setTeamBattleResult(null);
     };
 
-    useEffect(() => {
-        let timer;
-        if (isTeamSearching) {
-            timer = setInterval(() => {
-                setTeamSearchTime(prev => {
-                    if (prev >= 4) {
-                        clearInterval(timer);
-                        setIsTeamSearching(false);
-                        executeTeamBattle();
-                        return 0;
-                    }
-                    return prev + 1;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(timer);
-    }, [isTeamSearching]);
-
     const executeTeamBattle = () => {
         if (!myTeam) return;
 
@@ -152,6 +134,24 @@ const ArenaLanding = () => {
             coinsChange
         });
     };
+
+    useEffect(() => {
+        let timer;
+        if (isTeamSearching) {
+            timer = setInterval(() => {
+                setTeamSearchTime(prev => {
+                    if (prev >= 4) {
+                        clearInterval(timer);
+                        setIsTeamSearching(false);
+                        executeTeamBattle();
+                        return 0;
+                    }
+                    return prev + 1;
+                });
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [isTeamSearching]);
 
     // Load Real Stats
     const savedStats = JSON.parse(localStorage.getItem('arena_stats') || '{"xp": 0, "battles": 0, "wins": 0, "coins": 0}');
@@ -765,7 +765,7 @@ const ArenaLanding = () => {
  * Live monitor for global arena activity
  */
 const TournamentPulse = () => {
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [_currentTime, setCurrentTime] = useState(new Date());
     const [events, setEvents] = useState([
         { id: 1, user: 'NovaType', action: 'won a 1v1 Duel', value: '+50 XP', time: 'Just now' },
         { id: 2, user: 'CyberScribe', action: 'reached Rank Master', value: 'Level 42', time: '1 min ago' },
@@ -915,7 +915,7 @@ const TournamentPulse = () => {
                 </h3>
                 <div className="flex-1 space-y-4 overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/80 pointer-events-none z-10"></div>
-                    {events.map((ev, i) => (
+                    {events.map((ev, _i) => (
                         <div key={ev.id} className="flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
                             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                                 <Users className="w-4 h-4 text-indigo-400" />

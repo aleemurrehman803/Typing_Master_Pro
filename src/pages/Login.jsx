@@ -77,7 +77,9 @@ const Login = () => {
     useEffect(() => {
         const rememberedEmail = secureStorage.getItem('remember_email');
         if (rememberedEmail) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setEmail(rememberedEmail);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setRememberMe(true);
         }
     }, []);

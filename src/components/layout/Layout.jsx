@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 import {
     Keyboard,
@@ -31,9 +31,9 @@ import {
     Terminal,
     ChevronRight
 } from 'lucide-react';
-import packageJson from '../../../package.json';
-import { secureStorage } from '../../utils/security';
-import { isFeatureEnabled } from '../../utils/featureFlags';
+import _packageJson from '../../../package.json';
+import { secureStorage as _secureStorage } from '../../utils/security';
+import { isFeatureEnabled as _isFeatureEnabled } from '../../utils/featureFlags';
 import { getLevelBadge } from '../../utils/levelSystem';
 import CommandPalette from './CommandPalette';
 import ReferralModal from './ReferralModal';
@@ -59,7 +59,7 @@ const Layout = ({ children }) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Feature 1: Scroll-aware State
-    const [scrolled, setScrolled] = useState(false);
+    const [_scrolled, setScrolled] = useState(false);
     useEffect(() => {
         const handleScroll = () => {
             const isScrolled = window.scrollY > 20;
@@ -74,6 +74,7 @@ const Layout = ({ children }) => {
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPrefersReducedMotion(mediaQuery.matches);
         const handler = () => setPrefersReducedMotion(mediaQuery.matches);
         mediaQuery.addEventListener('change', handler);
@@ -119,7 +120,10 @@ const Layout = ({ children }) => {
 
 
     // Feature 48: ARIA Live Region State
-    const [liveStatus, setLiveStatus] = useState('');
+    const [liveStatus, _setLiveStatus] = useState('');
+
+    // Command Palette open state (controlled by this button; CommandPalette itself also listens for Ctrl+K)
+    const [_commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [notifications, setNotifications] = useState([

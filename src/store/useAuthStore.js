@@ -106,7 +106,7 @@ const useAuthStore = create((set, get) => ({
                 const urlParams = new URLSearchParams(window.location.search);
                 const referralId = urlParams.get('ref');
                 if (referralId) {
-                    const users = secureStorage.getItem('users') || {};
+                    const _users = secureStorage.getItem('users') || {};
                     // ... existing referral logic ...
                     // Simplified for this refactor to avoid complexity, but logic remains valid for local
                 }

@@ -11,7 +11,7 @@
  * Shadow WPM (new): Uses a weighted character system (e.g., capitals are harder).
  */
 
-export const calculateShadowWpm = (typedBuffer, elapsedSeconds, keystrokes) => {
+export const calculateShadowWpm = (typedBuffer, elapsedSeconds, _keystrokes) => {
     if (elapsedSeconds <= 0) return 0;
 
     // Advanced Weighted Score (New Formula Proposal)

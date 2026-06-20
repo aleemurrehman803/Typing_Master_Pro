@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { OAUTH_PROVIDERS, simulateSocialLogin } from '../../services/socialAuth.jsx';
+import { OAUTH_PROVIDERS } from '../../services/socialAuth.jsx';
 import { Loader2 } from 'lucide-react';
 
 /**

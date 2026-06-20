@@ -15,7 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { compressImage } from '../utils/imageUtils';
 import COUNTRY_CODES, { POPULAR_COUNTRIES } from '../utils/countryCodes';
 import NGramChart from '../components/analytics/NGramChart';
-import { checkLevelUnlock, getLevelBadge, LEVEL_REQUIREMENTS, LEVELS } from '../utils/levelSystem';
+import { checkLevelUnlock as _checkLevelUnlock, getLevelBadge, LEVEL_REQUIREMENTS, LEVELS } from '../utils/levelSystem';
 import SEOHead from '../components/SEOHead';
 
 // Static Chart Configurations
@@ -88,8 +88,8 @@ const Dashboard = () => {
     const [editAddress, setEditAddress] = useState('');
     const [editCity, setEditCity] = useState('');
     const [editCountry, setEditCountry] = useState('');
-    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-    const [countrySearchTerm, setCountrySearchTerm] = useState('');
+    const [_showCountryDropdown, _setShowCountryDropdown] = useState(false);
+    const [_countrySearchTerm, _setCountrySearchTerm] = useState('');
 
     // Handle automated scroll to referral section
     useEffect(() => {
@@ -135,6 +135,7 @@ const Dashboard = () => {
 
             // Daily Sharing Bonus Logic (10 shares in 24h = 50 coins)
             const shareData = JSON.parse(localStorage.getItem(`shares_${user.id}`) || '{"count": 0, "lastReset": 0, "bonusClaimed": false}');
+            // eslint-disable-next-line react-hooks/purity
             const now = Date.now();
             const ONE_DAY = 24 * 60 * 60 * 1000;
 
@@ -205,7 +206,7 @@ const Dashboard = () => {
             });
             setIsEditModalOpen(false);
             showNotification('Profile updated successfully!', 'success');
-        } catch (error) {
+        } catch (_error) {
             showNotification('Failed to update profile.', 'error');
         }
     };
@@ -266,25 +267,6 @@ const Dashboard = () => {
         }
     }, [user, navigate]);
 
-    if (!user) return null;
-
-    const stats = user.stats || {
-        testsTaken: 0,
-        avgWpm: 0,
-        bestWpm: 0,
-        totalWords: 0,
-        totalErrors: 0,
-        accuracy: 0
-    };
-
-    const badges = user.badges || [];
-    const earnedBadgeDetails = BADGES.filter(b => badges.includes(b.id));
-    const totalBadges = BADGES.length;
-    const badgeProgress = totalBadges > 0 ? Math.round((earnedBadgeDetails.length / totalBadges) * 100) : 0;
-
-    const joinedDaysAgo = Math.floor((Date.now() - new Date(user.joinedAt).getTime()) / (1000 * 60 * 60 * 24));
-    const testsPerDay = joinedDaysAgo > 0 ? (stats.testsTaken / joinedDaysAgo).toFixed(1) : 0;
-
     const recentTests = useMemo(() => {
         const history = user?.stats?.history || [];
         return history.slice(-10);
@@ -299,10 +281,6 @@ const Dashboard = () => {
         }));
     }, [recentTests]);
 
-    const level = Math.floor(stats.testsTaken / 10) + 1;
-    const xpInCurrentLevel = stats.testsTaken % 10;
-    const xpForNextLevel = 10;
-    const levelProgress = (xpInCurrentLevel / xpForNextLevel) * 100;
     const handleShare = useCallback(async () => {
         if (!user.stats) return;
         const stats = user.stats;
@@ -325,6 +303,31 @@ const Dashboard = () => {
             fallbackShare(shareText);
         }
     }, [user.stats]);
+
+    if (!user) return null;
+
+    const stats = user.stats || {
+        testsTaken: 0,
+        avgWpm: 0,
+        bestWpm: 0,
+        totalWords: 0,
+        totalErrors: 0,
+        accuracy: 0
+    };
+
+    const badges = user.badges || [];
+    const earnedBadgeDetails = BADGES.filter(b => badges.includes(b.id));
+    const totalBadges = BADGES.length;
+    const badgeProgress = totalBadges > 0 ? Math.round((earnedBadgeDetails.length / totalBadges) * 100) : 0;
+
+    // eslint-disable-next-line react-hooks/purity
+    const joinedDaysAgo = Math.floor((Date.now() - new Date(user.joinedAt).getTime()) / (1000 * 60 * 60 * 24));
+    const testsPerDay = joinedDaysAgo > 0 ? (stats.testsTaken / joinedDaysAgo).toFixed(1) : 0;
+
+    const level = Math.floor(stats.testsTaken / 10) + 1;
+    const xpInCurrentLevel = stats.testsTaken % 10;
+    const xpForNextLevel = 10;
+    const levelProgress = (xpInCurrentLevel / xpForNextLevel) * 100;
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-12 relative">

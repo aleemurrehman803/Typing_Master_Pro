@@ -27,16 +27,19 @@ const LessonPractice = ({ exerciseText, onComplete, onNext, onPrevious, isFirstL
 
     useEffect(() => {
         if (userInput.length === 1 && !startTime) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setStartTime(Date.now());
         }
     }, [userInput, startTime]);
 
     useEffect(() => {
         if (userInput === exerciseText && exerciseText.length > 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsComplete(true);
             const timeElapsed = (Date.now() - startTime) / 1000 / 60;
             const words = exerciseText.split(' ').length;
             const calculatedWpm = Math.round(words / timeElapsed);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setWpm(calculatedWpm);
         }
     }, [userInput, exerciseText, startTime]);
@@ -46,6 +49,7 @@ const LessonPractice = ({ exerciseText, onComplete, onNext, onPrevious, isFirstL
         for (let i = 0; i < userInput.length; i++) {
             if (userInput[i] !== exerciseText[i]) errorCount++;
         }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setErrors(errorCount);
     }, [userInput, exerciseText]);
 

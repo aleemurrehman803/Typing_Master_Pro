@@ -23,12 +23,12 @@ export const runMacroSimulation = async (iterations = 100) => {
     let nonce = '';
 
     // Performance Metrics
-    const latencies = [];
+    const _latencies = [];
 
     return new Promise((resolve) => {
         worker.onmessage = async (e) => {
             const { type, payload } = e.data;
-            const now = performance.now();
+            const _now = performance.now();
 
             if (type === 'CRYPTO_INIT') {
                 nonce = payload.nonce;
@@ -93,7 +93,7 @@ const simulateTyping = (worker, text, limit) => {
             return;
         }
 
-        const char = text[index];
+        const _char = text[index];
         const timestamp = performance.now(); // Using browser perf time
 
         // Phase 9: Latency Check
@@ -109,8 +109,8 @@ const simulateTyping = (worker, text, limit) => {
 };
 
 // Helper to reconstruct what we sent for verification
-const generateDeterministicKeystrokes = (text, limit) => {
-    const keys = [];
+const generateDeterministicKeystrokes = (_text, _limit) => {
+    const _keys = [];
     // Note: Timestamps won't match exactly in this loose simulation unless we fixed them.
     // In a strict test, we would pre-generate timestamps.
     // For this verification demo, we might fail the exact hash check because timestamps differ 

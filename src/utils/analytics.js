@@ -159,10 +159,10 @@ class AnalyticsService {
         this.trackEvent('IDENTIFY', { userId, ...traits }, false);
     }
 
-    sendToMockBackend(event) {
+    sendToMockBackend(_event) {
         // Production integrations go here (e.g. Sentry / PostHog)
         if (import.meta.env.VITE_ENV === 'production') {
-            // fetch('/api/analytics/collect', { method: 'POST', body: JSON.stringify(event) }).catch(...)
+            // fetch('/api/analytics/collect', { method: 'POST', body: JSON.stringify(_event) }).catch(...)
         }
     }
 }

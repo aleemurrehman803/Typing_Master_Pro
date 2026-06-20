@@ -360,7 +360,7 @@ const Test = () => {
     };
 
     const [showResult, setShowResult] = useState(false);
-    const [newBadges, setNewBadges] = useState([]);
+    const [_newBadges, setNewBadges] = useState([]);
 
 
 
@@ -382,7 +382,7 @@ const Test = () => {
     };
 
     // Handle Difficulty Change
-    const handleDifficultyChange = (diff) => {
+    const _handleDifficultyChange = (diff) => {
         setDifficulty(diff);
         if (PRESET_PARAGRAPHS[diff] && PRESET_PARAGRAPHS[diff].length > 0) {
             setSelectedParagraphId(PRESET_PARAGRAPHS[diff][0].id);

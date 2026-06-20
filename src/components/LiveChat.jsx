@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Minimize2, Maximize2, Send, Mic, MicOff, Plus, Minus, FileText, Heart, Volume2, VolumeX, Image as ImageIcon } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+
 import useAuthStore from '../store/useAuthStore';
 import JennyAI from '../utils/JennyAI';
 
@@ -11,7 +11,7 @@ const LiveChat = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewState, setViewState] = useState('normal');
     const [autoSpeak, setAutoSpeak] = useState(true); // Default to auto-speaking
-    const location = useLocation();
+
     const { user } = useAuthStore();
     const jennyAI = new JennyAI(user);
 

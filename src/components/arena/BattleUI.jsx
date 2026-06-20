@@ -29,10 +29,10 @@ const BattleUI = () => {
     const [combo, setCombo] = useState(0);
     const [maxCombo, setMaxCombo] = useState(0);
     const [particles, setParticles] = useState([]);
-    const [cursorPosition, setCursorPosition] = useState(0); // For Trail Effect
+    const [_cursorPosition, setCursorPosition] = useState(0); // For Trail Effect
     const [xpGained, setXpGained] = useState(0);
-    const [leveledUp, setLeveledUp] = useState(false);
-    const [newRank, setNewRank] = useState(null);
+    const [_leveledUp, setLeveledUp] = useState(false);
+    const [_newRank, setNewRank] = useState(null);
     const [suddenDeathChoked, setSuddenDeathChoked] = useState(false);
 
     // Opponent State
@@ -42,7 +42,7 @@ const BattleUI = () => {
     // Feedback
     const [commentary, setCommentary] = useState("Battle ready? Let's go!");
     const [soundEnabled, setSoundEnabled] = useState(true);
-    const [streamerMode, setStreamerMode] = useState(false);
+    const [streamerMode, _setStreamerMode] = useState(false);
     const inputRef = useRef(null);
 
     // Battle text bank
@@ -53,6 +53,7 @@ const BattleUI = () => {
         "Success comes to those who persevere through challenges and never give up on their dreams no matter how difficult the journey"
     ];
 
+    // eslint-disable-next-line react-hooks/purity
     const [battleText] = useState(battleTexts[Math.floor(Math.random() * battleTexts.length)]);
     const words = battleText.split(' ');
     const totalChars = battleText.length;
@@ -85,6 +86,53 @@ const BattleUI = () => {
             inputRef.current?.focus();
         }
     }, [battleState, countdown]);
+
+    const endBattle = () => {
+        setBattleState('finished');
+
+        const finalUserProgress = (userInput.trim() === battleText.trim()) ? 100 : (userInput.length / totalChars) * 100;
+
+        const userFinished = userInput.trim() === battleText.trim();
+        const aiFinished = opponentProgress >= 100;
+
+        const isVictory = userFinished || (!aiFinished && finalUserProgress > opponentProgress);
+
+        if (isVictory) {
+            soundManager.playWin();
+        }
+
+        let coinsChange = 0;
+        if (battleMode === 'competitive' || battleMode === 'pro') {
+            if (isVictory) coinsChange = potentialReward;
+            else coinsChange = -betAmount;
+        } else {
+            coinsChange = isVictory ? 10 : 5;
+        }
+
+        // XP Calculation
+        const xp = calculateBattleRewards(wpm, accuracy, isVictory, battleMode);
+        setXpGained(xp);
+
+        // Save Progress
+        const progress = saveArenaProgress(xp, coinsChange);
+        if (progress.leveledUp) {
+            setLeveledUp(true);
+            setNewRank(progress.newRank);
+            // Play special level up sound?
+            soundManager.playWin(); // Double fan fare
+        }
+
+        const stats = JSON.parse(localStorage.getItem('arena_practice_stats') || '{"wins": 0, "losses": 0, "bestWpm": 0}');
+        stats.wins = isVictory ? stats.wins + 1 : stats.wins;
+        stats.losses = isVictory ? stats.losses : stats.losses + 1;
+        stats.bestWpm = Math.max(stats.bestWpm, wpm);
+        localStorage.setItem('arena_practice_stats', JSON.stringify(stats));
+
+        // Dispatch even so navbar updates immediately
+        window.dispatchEvent(new Event('arena-coins-updated'));
+
+        return { isVictory, coinsChange };
+    };
 
     // Game loop
     useEffect(() => {
@@ -259,53 +307,6 @@ const BattleUI = () => {
         if (cleanedInput === cleanedTarget || (cleanedInput.length >= cleanedTarget.length && cleanedInput === cleanedTarget)) {
             endBattle();
         }
-    };
-
-    const endBattle = () => {
-        setBattleState('finished');
-
-        const finalUserProgress = (userInput.trim() === battleText.trim()) ? 100 : (userInput.length / totalChars) * 100;
-
-        const userFinished = userInput.trim() === battleText.trim();
-        const aiFinished = opponentProgress >= 100;
-
-        const isVictory = userFinished || (!aiFinished && finalUserProgress > opponentProgress);
-
-        if (isVictory) {
-            soundManager.playWin();
-        }
-
-        let coinsChange = 0;
-        if (battleMode === 'competitive' || battleMode === 'pro') {
-            if (isVictory) coinsChange = potentialReward;
-            else coinsChange = -betAmount;
-        } else {
-            coinsChange = isVictory ? 10 : 5;
-        }
-
-        // XP Calculation
-        const xp = calculateBattleRewards(wpm, accuracy, isVictory, battleMode);
-        setXpGained(xp);
-
-        // Save Progress
-        const progress = saveArenaProgress(xp, coinsChange);
-        if (progress.leveledUp) {
-            setLeveledUp(true);
-            setNewRank(progress.newRank);
-            // Play special level up sound?
-            soundManager.playWin(); // Double fan fare
-        }
-
-        const stats = JSON.parse(localStorage.getItem('arena_practice_stats') || '{"wins": 0, "losses": 0, "bestWpm": 0}');
-        stats.wins = isVictory ? stats.wins + 1 : stats.wins;
-        stats.losses = isVictory ? stats.losses : stats.losses + 1;
-        stats.bestWpm = Math.max(stats.bestWpm, wpm);
-        localStorage.setItem('arena_practice_stats', JSON.stringify(stats));
-
-        // Dispatch even so navbar updates immediately
-        window.dispatchEvent(new Event('arena-coins-updated'));
-
-        return { isVictory, coinsChange };
     };
 
     const userProgress = (userInput.length / totalChars) * 100;
@@ -644,6 +645,7 @@ const BattleUI = () => {
                                     </div>
                                     <div className="flex justify-between items-center text-sm font-semibold">
                                         <span className="text-slate-400 opacity-80">Burst Speed</span>
+                                        {/* eslint-disable-next-line react-hooks/purity */}
                                         <span className="text-indigo-400">{wpm + Math.floor(Math.random() * 15)} WPM</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm font-semibold text-purple-400">

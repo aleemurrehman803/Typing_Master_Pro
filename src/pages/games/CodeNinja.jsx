@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Code, Pause, Play, RotateCcw, ArrowLeft, Volume2, VolumeX, LogOut, Zap, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -118,7 +118,7 @@ const useCodeAudio = () => {
             gain.connect(ctxRef.current.destination);
             osc.start();
             osc.stop(ctxRef.current.currentTime + dur);
-        } catch (e) { }
+        } catch (_e) { /* ignore */ }
     }, [isMuted]);
 
     const playKey = () => playTone(800 + Math.random() * 200, 'square', 0.05, 0.02); // Clicky
@@ -145,7 +145,7 @@ const useCodeAudio = () => {
             osc.start();
             ambientRef.current = { osc, gain };
         } else if ((!play || isMuted) && ambientRef.current) {
-            try { ambientRef.current.osc.stop(); ambientRef.current.osc.disconnect(); ambientRef.current = null; } catch (e) { }
+            try { ambientRef.current.osc.stop(); ambientRef.current.osc.disconnect(); ambientRef.current = null; } catch (_e) { /* ignore */ }
         }
     }, [isMuted]);
 

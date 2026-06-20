@@ -38,7 +38,7 @@ export const syncNetworkTime = async () => {
 
         console.log(`[NTP] Network Offset: ${offset.toFixed(2)}ms, RTT: ${rtt.toFixed(2)}ms`);
         return offset;
-    } catch (e) {
+    } catch (_e) {
         console.warn('[NTP] Sync failed, using zero offset.');
         return 0;
     }
@@ -120,7 +120,7 @@ export class DuelPeerConnection {
  * Mock interface for Upstash/Redis Edge sharded leaderboards.
  */
 export const edgeLeaderboard = {
-    saveScore: async (wpm, accuracy, integrityScore) => {
+    saveScore: async (wpm, _accuracy, _integrityScore) => {
         // Feature 12: In production, this hits a Vercel Edge Function
         // which shards the leaderboard by WPM buckets [0-50, 50-100, 100-150, 150+]
         console.log(`[Edge] Writing to shard: WPM_${Math.floor(wpm / 50) * 50}`);

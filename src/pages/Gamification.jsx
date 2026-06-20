@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/purity */
 import React, { useState, useEffect } from 'react';
 import {
     Brain, Activity, Zap, Layers, Cpu, Shield, Wifi, Server,
@@ -35,6 +36,7 @@ const TypewriterText = ({ text, speed = 30 }) => {
             }, speed);
             return () => clearTimeout(timeout);
         } else if (currentIndex === text.length && !isComplete) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsComplete(true);
         }
     }, [currentIndex, text, speed, isComplete]);

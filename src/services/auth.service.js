@@ -67,7 +67,7 @@ export const AuthService = {
 
         // Success (Local)
         const token = generateToken(userData.id);
-        const { passwordHash, salt, ...safeUser } = userData;
+        const { passwordHash: _passwordHash, salt: _salt, ...safeUser } = userData;
 
         return {
             success: true,

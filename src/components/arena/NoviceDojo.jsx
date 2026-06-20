@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Swords, Trophy, ArrowLeft, Play } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
@@ -9,9 +9,9 @@ import useAuthStore from '../../store/useAuthStore';
  */
 const NoviceDojo = () => {
     const navigate = useNavigate();
-    const { user } = useAuthStore();
+    const { user: _user } = useAuthStore();
     const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
-    const [isReady, setIsReady] = useState(false);
+    const [_isReady, _setIsReady] = useState(false);
     const [suddenDeath, setSuddenDeath] = useState(false);
     const [aiPersonality, setAiPersonality] = useState('standard');
 

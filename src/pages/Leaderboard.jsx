@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Trophy, Medal, Award, TrendingUp, Clock, Star, Target, Zap, Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
-import { secureStorage } from '../utils/auth';
 import { DbService } from '../services/db.service';
 import SEOHead from '../components/SEOHead';
 
@@ -108,7 +107,7 @@ const Leaderboard = () => {
     const [hoveredRow, setHoveredRow] = useState(null);
 
     const [allScores, setAllScores] = useState([]);
-    const [loadingScores, setLoadingScores] = useState(true);
+    const [_loadingScores, setLoadingScores] = useState(true);
 
     useEffect(() => {
         const fetchScores = async () => {
@@ -137,7 +136,7 @@ const Leaderboard = () => {
 
     const currentEmail = user?.email?.toLowerCase();
     const currentRanked = ranked.find(e => e.email?.toLowerCase() === currentEmail);
-    const top3 = ranked.slice(0, 3);
+
 
     // Add demo data if board is empty (first run)
     const displayData = useMemo(() => {

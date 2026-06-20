@@ -41,7 +41,7 @@ export const checkBackendConnection = async () => {
     try {
         const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
         return !error;
-    } catch (err) {
+    } catch (_err) {
         return false;
     }
 };
