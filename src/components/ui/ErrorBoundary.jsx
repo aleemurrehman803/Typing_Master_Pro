@@ -50,15 +50,15 @@ class ErrorBoundary extends React.Component {
                             </p>
                         </div>
 
-                        {import.meta.env.DEV && this.state.error && (
-                            <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        {this.state.error && (
+                            <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200 text-left">
                                 <p className="text-sm font-semibold text-slate-700 mb-2">Error Details:</p>
                                 <p className="text-xs text-red-600 font-mono mb-2">{this.state.error.toString()}</p>
                                 {this.state.errorInfo && (
                                     <details className="text-xs text-slate-600">
                                         <summary className="cursor-pointer font-medium mb-1">Stack Trace</summary>
-                                        <pre className="mt-2 p-2 bg-white rounded border border-slate-200 overflow-auto text-xs">
-                                            {this.state.errorInfo.componentStack}
+                                        <pre className="mt-2 p-2 bg-white rounded border border-slate-200 overflow-auto text-xs font-mono max-h-48">
+                                            {this.state.errorInfo.componentStack || this.state.error.stack}
                                         </pre>
                                     </details>
                                 )}
