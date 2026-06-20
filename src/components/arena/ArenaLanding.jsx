@@ -14,6 +14,145 @@ const ArenaLanding = () => {
 
     const [streamerMode, setStreamerMode] = useState(false);
 
+    // --- Team Competitions States ---
+    const [activeLobbyTab, setActiveLobbyTab] = useState('tiers'); // 'tiers' | 'teams'
+    const [myTeam, setMyTeam] = useState(() => {
+        const stored = localStorage.getItem('user_typing_team');
+        return stored ? JSON.parse(stored) : null;
+    });
+
+    const [createTeamName, setCreateTeamName] = useState('');
+    const [createTeamTag, setCreateTeamTag] = useState('');
+    const [createTeamEmoji, setCreateTeamEmoji] = useState('🚀');
+    const [joinTeamCode, setJoinTeamCode] = useState('');
+
+    const [isTeamSearching, setIsTeamSearching] = useState(false);
+    const [teamSearchTime, setTeamSearchTime] = useState(0);
+    const [teamBattleResult, setTeamBattleResult] = useState(null);
+
+    const [teamLeaderboard, setTeamLeaderboard] = useState([
+        { name: 'Alpha Typists', tag: 'ALP', emoji: '👑', elo: 1850, members: 3, wpm: 88 },
+        { name: 'Finger Speedsters', tag: 'FSP', emoji: '⚡', elo: 1720, members: 4, wpm: 76 },
+        { name: 'Qwerty Gods', tag: 'QWG', emoji: '🔥', elo: 1690, members: 3, wpm: 74 },
+        { name: 'Keyboard Warriors', tag: 'KBW', emoji: '⚔️', elo: 1540, members: 2, wpm: 65 }
+    ]);
+
+    const handleCreateTeam = (e) => {
+        e.preventDefault();
+        if (!createTeamName || !createTeamTag) return;
+        const newTeam = {
+            name: createTeamName,
+            tag: createTeamTag.toUpperCase().substring(0, 4),
+            emoji: createTeamEmoji,
+            inviteCode: 'TEAM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+            elo: 1200,
+            members: [
+                { name: user?.name || 'You', elo: 1200, role: 'Leader', wpm: user?.stats?.bestWpm || 45 }
+            ],
+            averageWpm: user?.stats?.bestWpm || 45,
+            matchesPlayed: 0,
+            wins: 0
+        };
+        localStorage.setItem('user_typing_team', JSON.stringify(newTeam));
+        setMyTeam(newTeam);
+        setCreateTeamName('');
+        setCreateTeamTag('');
+    };
+
+    const handleJoinTeam = (e) => {
+        e.preventDefault();
+        if (!joinTeamCode) return;
+        
+        const matchedOnLeaderboard = teamLeaderboard.find(t => t.tag === joinTeamCode.toUpperCase() || joinTeamCode.length > 3);
+        const teamName = matchedOnLeaderboard ? matchedOnLeaderboard.name : 'Qwerty Gods';
+        const teamTag = matchedOnLeaderboard ? matchedOnLeaderboard.tag : 'QWG';
+        const teamEmoji = matchedOnLeaderboard ? matchedOnLeaderboard.emoji : '🔥';
+        const teamElo = matchedOnLeaderboard ? matchedOnLeaderboard.elo : 1400;
+
+        const joinedTeam = {
+            name: teamName,
+            tag: teamTag,
+            emoji: teamEmoji,
+            inviteCode: joinTeamCode.toUpperCase(),
+            elo: teamElo,
+            members: [
+                { name: 'Alex_Speed', elo: teamElo + 100, role: 'Leader', wpm: 75 },
+                { name: 'TypingPro_1', elo: teamElo - 50, role: 'Member', wpm: 60 },
+                { name: user?.name || 'You', elo: 1000, role: 'Member', wpm: user?.stats?.bestWpm || 45 }
+            ],
+            averageWpm: Math.round((75 + 60 + (user?.stats?.bestWpm || 45)) / 3),
+            matchesPlayed: 10,
+            wins: 7
+        };
+        localStorage.setItem('user_typing_team', JSON.stringify(joinedTeam));
+        setMyTeam(joinedTeam);
+        setJoinTeamCode('');
+    };
+
+    const handleLeaveTeam = () => {
+        localStorage.removeItem('user_typing_team');
+        setMyTeam(null);
+        setTeamBattleResult(null);
+    };
+
+    useEffect(() => {
+        let timer;
+        if (isTeamSearching) {
+            timer = setInterval(() => {
+                setTeamSearchTime(prev => {
+                    if (prev >= 4) {
+                        clearInterval(timer);
+                        setIsTeamSearching(false);
+                        executeTeamBattle();
+                        return 0;
+                    }
+                    return prev + 1;
+                });
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [isTeamSearching]);
+
+    const executeTeamBattle = () => {
+        if (!myTeam) return;
+
+        const opponentIndex = Math.floor(Math.random() * teamLeaderboard.length);
+        const opponentTeam = teamLeaderboard[opponentIndex];
+
+        const userWpm = user?.stats?.bestWpm || 45;
+        const member1Wpm = 50 + Math.floor(Math.random() * 30);
+        const member2Wpm = 45 + Math.floor(Math.random() * 25);
+        const playerTeamAvg = Math.round((userWpm + member1Wpm + member2Wpm) / 3);
+
+        const opponentTeamAvg = Math.round(opponentTeam.wpm + (Math.random() * 10 - 5));
+
+        const passed = playerTeamAvg >= opponentTeamAvg;
+        const eloChange = passed ? 25 : -15;
+        const coinsChange = passed ? 50 : 10;
+
+        const updatedTeam = {
+            ...myTeam,
+            elo: Math.max(100, myTeam.elo + eloChange),
+            matchesPlayed: myTeam.matchesPlayed + 1,
+            wins: passed ? myTeam.wins + 1 : myTeam.wins
+        };
+        localStorage.setItem('user_typing_team', JSON.stringify(updatedTeam));
+        setMyTeam(updatedTeam);
+
+        const coins = parseInt(localStorage.getItem('arena_coins') || '0');
+        localStorage.setItem('arena_coins', (coins + coinsChange).toString());
+        window.dispatchEvent(new Event('arena-coins-updated'));
+
+        setTeamBattleResult({
+            passed,
+            opponentName: `${opponentTeam.emoji} ${opponentTeam.name} [${opponentTeam.tag}]`,
+            playerTeamAvg,
+            opponentTeamAvg,
+            eloChange,
+            coinsChange
+        });
+    };
+
     // Load Real Stats
     const savedStats = JSON.parse(localStorage.getItem('arena_stats') || '{"xp": 0, "battles": 0, "wins": 0, "coins": 0}');
     const currentRank = getRank(savedStats.xp);
@@ -132,16 +271,25 @@ const ArenaLanding = () => {
 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                     {/* Header */}
-                    <div className="text-center mb-12">
-                        <div className="inline-flex items-center gap-3 mb-4">
-                            <Swords className="w-12 h-12 text-indigo-400" />
-                            <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-white via-indigo-200 to-purple-300 bg-clip-text text-transparent">
-                                Battle Arena
-                            </h1>
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 border-b border-slate-800/40 pb-8">
+                        <div className="text-center md:text-left">
+                            <div className="inline-flex items-center gap-3 mb-4 justify-center md:justify-start">
+                                <Swords className="w-12 h-12 text-indigo-400 animate-pulse" />
+                                <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-white via-indigo-200 to-purple-300 bg-clip-text text-transparent">
+                                    Battle Arena
+                                </h1>
+                            </div>
+                            <p className="text-lg text-slate-400 max-w-2xl">
+                                Transform your typing skills into competitive victories. Enter the arena, prove your speed, and earn rewards.
+                            </p>
                         </div>
-                        <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-                            Transform your typing skills into competitive victories. Enter the arena, prove your speed, and earn rewards.
-                        </p>
+                        <button
+                            onClick={() => navigate('/arena/shop')}
+                            className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-600 hover:via-orange-600 hover:to-rose-700 text-white font-black rounded-2xl shadow-xl shadow-amber-500/10 hover:shadow-amber-500/25 hover:scale-105 transition-all text-sm uppercase tracking-wider border border-amber-400/20"
+                        >
+                            <ShoppingBag className="w-5 h-5 animate-bounce" />
+                            Enter The Armory
+                        </button>
                     </div>
 
                     {/* Feature 50: Global Tournament Pulse HUD */}
@@ -239,92 +387,373 @@ const ArenaLanding = () => {
                         </div>
                     </div>
 
-                    {/* Tiers Section */}
-                    <div className="mb-16">
-                        <h2 className="text-3xl font-black text-white mb-8 text-center">Choose Your Arena</h2>
-                        <div className="grid md:grid-cols-3 gap-6">
-                            {tiers.map((tier) => {
-                                const Icon = tier.icon;
-                                const isRecommended = tier.id === suggestedTier;
+                    {/* Lobby Tab Selector */}
+                    <div className="flex justify-center mb-10">
+                        <div className="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl flex gap-2">
+                            <button
+                                onClick={() => setActiveLobbyTab('tiers')}
+                                className={`px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 ${activeLobbyTab === 'tiers' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                <Swords className="w-4 h-4" />
+                                Arena Tiers
+                            </button>
+                            <button
+                                onClick={() => setActiveLobbyTab('teams')}
+                                className={`px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 ${activeLobbyTab === 'teams' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                <Users className="w-4 h-4" />
+                                Team Leagues
+                            </button>
+                        </div>
+                    </div>
 
-                                return (
-                                    <div
-                                        key={tier.id}
-                                        className={`relative group ${tier.locked ? 'opacity-60' : 'cursor-pointer'}`}
-                                        onClick={() => !tier.locked && navigate(tier.route)}
-                                    >
-                                        {/* Glow Effect */}
-                                        <div className={`absolute -inset-0.5 bg-gradient-to-r ${tier.gradient} rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500`}></div>
+                    {/* Team Search Overlay */}
+                    {isTeamSearching && (
+                        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
+                            <div className="text-center space-y-6 max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                                <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse border border-indigo-500/30">
+                                    <Users className="w-10 h-10 text-indigo-400 animate-bounce" />
+                                </div>
+                                <h3 className="text-2xl font-black text-white">Matching Teams...</h3>
+                                <p className="text-slate-400 text-sm">Searching for ELO-compatible opponents. Creating 3v3 typing track.</p>
+                                <div className="text-amber-500 font-mono text-lg font-bold">Elapsed: {teamSearchTime}s</div>
+                            </div>
+                        </div>
+                    )}
 
-                                        {/* Card */}
-                                        <div className="relative bg-slate-900 rounded-2xl border border-slate-700 p-6 h-full transition-transform duration-300 group-hover:scale-105">
-                                            {/* Recommended Badge */}
-                                            {isRecommended && (
-                                                <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                                                    RECOMMENDED
+                    {/* Team Battle Results Modal */}
+                    {teamBattleResult && (
+                        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
+                            <div className={`max-w-md w-full bg-slate-900 border ${teamBattleResult.passed ? 'border-emerald-500/30' : 'border-rose-500/30'} rounded-3xl p-8 text-center relative overflow-hidden shadow-2xl`}>
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-purple-600" />
+                                <h3 className={`text-3xl font-black mb-2 tracking-wide uppercase ${teamBattleResult.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {teamBattleResult.passed ? '🏆 VICTORY!' : '💀 DEFEAT'}
+                                </h3>
+                                <p className="text-slate-400 text-sm mb-6">3v3 Team Battle vs {teamBattleResult.opponentName}</p>
+
+                                <div className="grid grid-cols-2 gap-4 bg-slate-950 p-4 rounded-2xl mb-6 border border-slate-800">
+                                    <div>
+                                        <span className="block text-[10px] uppercase tracking-wider text-slate-500">Your Team WPM</span>
+                                        <span className="text-2xl font-black text-indigo-400">{teamBattleResult.playerTeamAvg}</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] uppercase tracking-wider text-slate-500">Opponent Avg</span>
+                                        <span className="text-2xl font-black text-rose-400">{teamBattleResult.opponentTeamAvg}</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 mb-8 text-sm font-bold">
+                                    <div className="flex justify-between text-slate-400">
+                                        <span>Team ELO Rating:</span>
+                                        <span className={teamBattleResult.eloChange > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                                            {teamBattleResult.eloChange > 0 ? `+${teamBattleResult.eloChange}` : teamBattleResult.eloChange} ELO
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-400">
+                                        <span>Stakes Coins Earned:</span>
+                                        <span className="text-yellow-400">+{teamBattleResult.coinsChange} Coins 🪙</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setTeamBattleResult(null)}
+                                    className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg hover:scale-105"
+                                >
+                                    Dismiss Results
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeLobbyTab === 'tiers' ? (
+                        <>
+                            {/* Tiers Section */}
+                            <div className="mb-16">
+                                <h2 className="text-3xl font-black text-white mb-8 text-center">Choose Your Arena</h2>
+                                <div className="grid md:grid-cols-3 gap-6">
+                                    {tiers.map((tier) => {
+                                        const Icon = tier.icon;
+                                        const isRecommended = tier.id === suggestedTier;
+
+                                        return (
+                                            <div
+                                                key={tier.id}
+                                                className={`relative group ${tier.locked ? 'opacity-60' : 'cursor-pointer'}`}
+                                                onClick={() => !tier.locked && navigate(tier.route)}
+                                            >
+                                                {/* Glow Effect */}
+                                                <div className={`absolute -inset-0.5 bg-gradient-to-r ${tier.gradient} rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500`}></div>
+
+                                                {/* Card */}
+                                                <div className="relative bg-slate-900 rounded-2xl border border-slate-700 p-6 h-full transition-transform duration-300 group-hover:scale-105">
+                                                    {isRecommended && (
+                                                        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                                            RECOMMENDED
+                                                        </div>
+                                                    )}
+
+                                                    {tier.locked && (
+                                                        <div className="absolute -top-3 -right-3 bg-slate-700 text-slate-300 text-xs font-bold px-3 py-1 rounded-full">
+                                                            LOCKED
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${tier.gradient}`}>
+                                                            <Icon className="w-6 h-6 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-xl font-black text-white">{tier.name}</h3>
+                                                            <p className="text-xs text-slate-400">{tier.requirement}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-sm text-slate-300 mb-4">{tier.description}</p>
+
+                                                    <ul className="space-y-2">
+                                                        {tier.features.map((feature, idx) => (
+                                                            <li key={idx} className="flex items-center gap-2 text-sm text-slate-400">
+                                                                <div className={`w-1.5 h-1.5 rounded-full bg-${tier.glowColor}-400`}></div>
+                                                                {feature}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+
+                                                    {!tier.locked && (
+                                                        <button className={`mt-6 w-full py-3 rounded-xl bg-gradient-to-r ${tier.gradient} text-white font-bold hover:shadow-xl transition-all duration-300`}>
+                                                            Enter Arena
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
 
-                                            {/* Locked Badge */}
-                                            {tier.locked && (
-                                                <div className="absolute -top-3 -right-3 bg-slate-700 text-slate-300 text-xs font-bold px-3 py-1 rounded-full">
-                                                    LOCKED
+                            {/* Game Modes */}
+                            <div>
+                                <h2 className="text-3xl font-black text-white mb-8 text-center">Game Modes</h2>
+                                <div className="grid md:grid-cols-4 gap-4">
+                                    {gameModes.map((mode) => {
+                                        const Icon = mode.icon;
+                                        return (
+                                            <div
+                                                key={mode.name}
+                                                className="bg-slate-800/50 backdrop-blur-xl rounded-xl border border-slate-700/50 p-4 hover:border-indigo-500/50 transition-all duration-300 cursor-pointer group"
+                                            >
+                                                <Icon className={`w-8 h-8 text-${mode.color}-400 mb-3 group-hover:scale-110 transition-transform`} />
+                                                <h4 className="font-bold text-white mb-1">{mode.name}</h4>
+                                                <p className="text-xs text-slate-400 mb-2">{mode.description}</p>
+                                                <div className="text-xs text-slate-500">{mode.players}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        /* Team Leagues Content */
+                        <div className="space-y-12 animate-in fade-in">
+                            {!myTeam ? (
+                                <div className="grid md:grid-cols-2 gap-8">
+                                    {/* Create Team */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between shadow-xl">
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white">
+                                                    <Users className="w-6 h-6" />
                                                 </div>
-                                            )}
-
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className={`p-3 rounded-xl bg-gradient-to-br ${tier.gradient}`}>
-                                                    <Icon className="w-6 h-6 text-white" />
-                                                </div>
+                                                <h3 className="text-2xl font-black text-white">Create a Team</h3>
+                                            </div>
+                                            <p className="text-slate-400 text-sm">Form your own typing guild. Custom tag, ELO metrics, and exclusive cosmetic unlocks.</p>
+                                            <form onSubmit={handleCreateTeam} className="space-y-4">
                                                 <div>
-                                                    <h3 className="text-xl font-black text-white">{tier.name}</h3>
-                                                    <p className="text-xs text-slate-400">{tier.requirement}</p>
+                                                    <label className="block text-xs uppercase font-extrabold text-slate-400 mb-1">Team Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={createTeamName}
+                                                        onChange={(e) => setCreateTeamName(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-sm font-semibold"
+                                                        placeholder="e.g. Speed Demons"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs uppercase font-extrabold text-slate-400 mb-1">Tag (Max 4 Char)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={createTeamTag}
+                                                            onChange={(e) => setCreateTeamTag(e.target.value)}
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-sm font-semibold text-center uppercase"
+                                                            placeholder="WPM"
+                                                            maxLength={4}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs uppercase font-extrabold text-slate-400 mb-1">Icon/Emoji</label>
+                                                        <select
+                                                            value={createTeamEmoji}
+                                                            onChange={(e) => setCreateTeamEmoji(e.target.value)}
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-sm font-semibold text-center"
+                                                        >
+                                                            <option value="🚀">🚀 Rockets</option>
+                                                            <option value="👑">👑 Kings</option>
+                                                            <option value="⚡">⚡ Lightning</option>
+                                                            <option value="🔥">🔥 Fire</option>
+                                                            <option value="⚔️">⚔️ Swords</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <button type="submit" className="w-full mt-4 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
+                                                    Create Typing Guild
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    {/* Join Team */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between shadow-xl">
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-3 bg-slate-800 rounded-xl text-white">
+                                                    <Trophy className="w-6 h-6 text-indigo-400" />
+                                                </div>
+                                                <h3 className="text-2xl font-black text-white">Join a Team</h3>
+                                            </div>
+                                            <p className="text-slate-400 text-sm">Enter an invite code or a team tag to merge with an active guild and climb the ELO ranks.</p>
+                                            <form onSubmit={handleJoinTeam} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-xs uppercase font-extrabold text-slate-400 mb-1">Invite Code or Tag</label>
+                                                    <input
+                                                        type="text"
+                                                        value={joinTeamCode}
+                                                        onChange={(e) => setJoinTeamCode(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-sm font-semibold text-center uppercase"
+                                                        placeholder="e.g. ALP or TEAM-XYZ"
+                                                    />
+                                                </div>
+                                                <button type="submit" className="w-full mt-4 py-3.5 bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold rounded-xl hover:bg-slate-700 transition-all">
+                                                    Join Existing Guild
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Joined Team View */
+                                <div className="grid lg:grid-cols-3 gap-8">
+                                    {/* Left: Team Info & Members */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-purple-600" />
+                                            
+                                            {/* Team Title Card */}
+                                            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-5xl">{myTeam.emoji}</span>
+                                                    <div>
+                                                        <h3 className="text-2xl font-black text-white flex items-center gap-2">
+                                                            {myTeam.name}
+                                                            <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono uppercase">
+                                                                [{myTeam.tag}]
+                                                            </span>
+                                                        </h3>
+                                                        <p className="text-xs text-slate-500">Invite Code: <span className="font-mono text-slate-300 font-bold">{myTeam.inviteCode}</span></p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={handleLeaveTeam}
+                                                    className="px-4 py-2 border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white text-xs font-bold rounded-xl transition-all"
+                                                >
+                                                    Leave Team
+                                                </button>
+                                            </div>
+
+                                            {/* Team Stats */}
+                                            <div className="grid grid-cols-3 gap-4 bg-slate-950 p-4 rounded-2xl mb-8 border border-slate-800/80">
+                                                <div className="text-center">
+                                                    <span className="block text-[10px] text-slate-500 uppercase tracking-widest">ELO Rating</span>
+                                                    <span className="text-xl font-black text-indigo-400">{myTeam.elo}</span>
+                                                </div>
+                                                <div className="text-center">
+                                                    <span className="block text-[10px] text-slate-500 uppercase tracking-widest">Matches</span>
+                                                    <span className="text-xl font-black text-slate-300">{myTeam.matchesPlayed}</span>
+                                                </div>
+                                                <div className="text-center">
+                                                    <span className="block text-[10px] text-slate-500 uppercase tracking-widest">Wins</span>
+                                                    <span className="text-xl font-black text-emerald-400">{myTeam.wins}</span>
                                                 </div>
                                             </div>
 
-                                            <p className="text-sm text-slate-300 mb-4">{tier.description}</p>
+                                            {/* Roster list */}
+                                            <div className="space-y-4">
+                                                <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">Guild Roster</h4>
+                                                <div className="divide-y divide-slate-800">
+                                                    {myTeam.members.map((member, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                                <span className="font-bold text-slate-200">{member.name}</span>
+                                                                <span className="text-[10px] bg-slate-800 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase">{member.role}</span>
+                                                            </div>
+                                                            <div className="flex gap-4 text-xs font-semibold text-slate-500">
+                                                                <span>{member.wpm} WPM</span>
+                                                                <span>{member.elo} ELO</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
 
-                                            <ul className="space-y-2">
-                                                {tier.features.map((feature, idx) => (
-                                                    <li key={idx} className="flex items-center gap-2 text-sm text-slate-400">
-                                                        <div className={`w-1.5 h-1.5 rounded-full bg-${tier.glowColor}-400`}></div>
-                                                        {feature}
-                                                    </li>
-                                                ))}
-                                            </ul>
-
-                                            {!tier.locked && (
-                                                <button className={`mt-6 w-full py-3 rounded-xl bg-gradient-to-r ${tier.gradient} text-white font-bold hover:shadow-xl transition-all duration-300`}>
-                                                    Enter Arena
+                                            {/* Start 3v3 Match */}
+                                            <div className="mt-8 pt-6 border-t border-slate-800">
+                                                <button
+                                                    onClick={() => setIsTeamSearching(true)}
+                                                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-[1.01]"
+                                                >
+                                                    <Swords className="w-5 h-5" />
+                                                    Queue 3v3 Team Battle
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
 
-                    {/* Game Modes */}
-                    <div>
-                        <h2 className="text-3xl font-black text-white mb-8 text-center">Game Modes</h2>
-                        <div className="grid md:grid-cols-4 gap-4">
-                            {gameModes.map((mode) => {
-                                const Icon = mode.icon;
-                                return (
-                                    <div
-                                        key={mode.name}
-                                        className="bg-slate-800/50 backdrop-blur-xl rounded-xl border border-slate-700/50 p-4 hover:border-indigo-500/50 transition-all duration-300 cursor-pointer group"
-                                    >
-                                        <Icon className={`w-8 h-8 text-${mode.color}-400 mb-3 group-hover:scale-110 transition-transform`} />
-                                        <h4 className="font-bold text-white mb-1">{mode.name}</h4>
-                                        <p className="text-xs text-slate-400 mb-2">{mode.description}</p>
-                                        <div className="text-xs text-slate-500">{mode.players}</div>
+                                    {/* Right: Team Leaderboard */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-sm h-fit">
+                                        <h3 className="text-lg font-black text-white mb-6 flex items-center gap-2">
+                                            <Trophy className="w-5 h-5 text-amber-500" />
+                                            Team ELO Leaderboard
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {/* Insert user team if not already in mock list */}
+                                            {[...teamLeaderboard, { name: myTeam.name, tag: myTeam.tag, emoji: myTeam.emoji, elo: myTeam.elo, members: myTeam.members.length, wpm: myTeam.averageWpm }]
+                                                .sort((a, b) => b.elo - a.elo)
+                                                .map((team, rankIdx) => {
+                                                    const isUserTeam = team.tag === myTeam.tag;
+                                                    return (
+                                                        <div
+                                                            key={rankIdx}
+                                                            className={`flex items-center justify-between p-3 rounded-2xl border ${isUserTeam ? 'bg-indigo-950/40 border-indigo-500/30' : 'bg-slate-950/20 border-slate-800'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="font-mono text-sm text-slate-500 font-black">{rankIdx + 1}</span>
+                                                                <span className="text-xl">{team.emoji}</span>
+                                                                <div>
+                                                                    <h4 className="font-bold text-sm text-slate-200">{team.name}</h4>
+                                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">{team.members} members</span>
+                                                                </div>
+                                                            </div>
+                                                            <span className="font-mono font-bold text-sm text-indigo-400">{team.elo}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
                                     </div>
-                                );
-                            })}
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -1,4 +1,6 @@
 import CryptoJS from 'crypto-js';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { getDeviceKey } from './deviceKey';
 
 /**
  * Professional Cryptography Utilities
@@ -51,6 +53,32 @@ export const generateSalt = () => {
  * @param {number} expiresIn - Token lifetime in milliseconds (default: 24h)
  * @returns {string} Token
  */
+const getJwtSecret = () => {
+    const envKey = import.meta.env.VITE_JWT_SECRET;
+    
+    // In production/live backend mode, strictly enforce JWT secret
+    if (isSupabaseConfigured) {
+        if (!envKey || envKey.length < 32 || envKey.includes('change-in-production') || envKey === 'your_jwt_secret_here' || envKey === 'placeholder') {
+            throw new Error('CRITICAL SECURITY ERROR: VITE_JWT_SECRET is not properly configured for production database access. The secret must be at least 32 characters long and cannot be a default or placeholder.');
+        }
+        return envKey;
+    }
+
+    if (envKey && envKey !== 'your_jwt_secret_here' && envKey !== 'placeholder') {
+        return envKey;
+    }
+
+    return getDeviceKey();
+};
+
+const LEGACY_JWT_SECRET = 'typemaster-secret-key-change-in-production';
+
+/**
+ * Generate JWT-like token for session management
+ * @param {string} userId - User identifier
+ * @param {number} expiresIn - Token lifetime in milliseconds (default: 24h)
+ * @returns {string} Token
+ */
 export const generateToken = (userId, expiresIn = 24 * 60 * 60 * 1000) => {
     const header = { alg: 'HS256', typ: 'JWT' };
     const payload = {
@@ -59,8 +87,7 @@ export const generateToken = (userId, expiresIn = 24 * 60 * 60 * 1000) => {
         exp: Date.now() + expiresIn
     };
 
-    // In production, use environment variable
-    const secret = import.meta.env.VITE_JWT_SECRET || 'typemaster-secret-key-change-in-production';
+    const secret = getJwtSecret();
 
     const encodedHeader = btoa(JSON.stringify(header));
     const encodedPayload = btoa(JSON.stringify(payload));
@@ -90,14 +117,27 @@ export const verifyToken = (token) => {
 
         const [header, payload, signature] = parts;
 
-        // VITAL: Verify Signature
-        const secret = import.meta.env.VITE_JWT_SECRET || 'typemaster-secret-key-change-in-production';
-        const expectedSignature = CryptoJS.HmacSHA256(
+        // VITAL: Verify Signature using dynamic key first
+        const secret = getJwtSecret();
+        let expectedSignature = CryptoJS.HmacSHA256(
             `${header}.${payload}`,
             secret
         ).toString();
 
-        if (signature !== expectedSignature) {
+        let isSignatureValid = signature === expectedSignature;
+
+        // Fallback check using legacy key if dynamic check fails
+        if (!isSignatureValid && secret !== LEGACY_JWT_SECRET) {
+            const legacyExpectedSignature = CryptoJS.HmacSHA256(
+                `${header}.${payload}`,
+                LEGACY_JWT_SECRET
+            ).toString();
+            if (signature === legacyExpectedSignature) {
+                isSignatureValid = true;
+            }
+        }
+
+        if (!isSignatureValid) {
             console.error('CRITICAL: Token signature mismatch. Possible tampering detected.');
             return { valid: false, error: 'Invalid token signature' };
         }
@@ -116,15 +156,29 @@ export const verifyToken = (token) => {
     }
 };
 
+const getEncryptionKey = (providedKey) => {
+    const keyToUse = providedKey || import.meta.env.VITE_ENCRYPTION_KEY;
+    
+    if (isSupabaseConfigured) {
+        if (!keyToUse || keyToUse.length < 32 || keyToUse === 'default-encryption-key' || keyToUse.includes('change-in-production') || keyToUse.includes('your-') || keyToUse === 'placeholder') {
+            throw new Error('CRITICAL: VITE_ENCRYPTION_KEY must be a secure, random string of at least 32 characters when connected to a live backend database.');
+        }
+        return keyToUse;
+    }
+    
+    return keyToUse || 'default-encryption-key';
+};
+
 /**
  * Encrypt data for secure storage
  * @param {any} data - Data to encrypt
  * @param {string} key - Encryption key
  * @returns {string} Encrypted string
  */
-export const encryptData = (data, key = import.meta.env.VITE_ENCRYPTION_KEY || 'default-encryption-key') => {
+export const encryptData = (data, key) => {
+    const activeKey = getEncryptionKey(key);
     const serialized = JSON.stringify(data);
-    return CryptoJS.AES.encrypt(serialized, key).toString();
+    return CryptoJS.AES.encrypt(serialized, activeKey).toString();
 };
 
 /**
@@ -133,9 +187,10 @@ export const encryptData = (data, key = import.meta.env.VITE_ENCRYPTION_KEY || '
  * @param {string} key - Decryption key
  * @returns {any} Decrypted data
  */
-export const decryptData = (encryptedData, key = import.meta.env.VITE_ENCRYPTION_KEY || 'default-encryption-key') => {
+export const decryptData = (encryptedData, key) => {
     try {
-        const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
+        const activeKey = getEncryptionKey(key);
+        const decrypted = CryptoJS.AES.decrypt(encryptedData, activeKey);
         const serialized = decrypted.toString(CryptoJS.enc.Utf8);
         return JSON.parse(serialized);
     } catch (error) {

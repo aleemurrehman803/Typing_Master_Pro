@@ -1,11 +1,21 @@
 import { encryptData, decryptData } from './crypto';
+import { getDeviceKey as getDynamicDeviceKey } from './deviceKey';
 
 /**
  * Secure Storage Wrapper
  * Encrypted localStorage with error handling and type safety
  */
 
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'typemaster-storage-key';
+const getDeviceKey = () => {
+    const envKey = import.meta.env.VITE_ENCRYPTION_KEY;
+    if (envKey && envKey !== 'your_encryption_key_here' && envKey !== 'placeholder') {
+        return envKey;
+    }
+    return getDynamicDeviceKey();
+};
+
+const ENCRYPTION_KEY = getDeviceKey();
+const LEGACY_ENCRYPTION_KEY = 'typemaster-storage-key';
 const STORAGE_PREFIX = 'tm_'; // TypeMaster prefix
 
 class SecureStorage {
@@ -60,7 +70,19 @@ class SecureStorage {
                 return defaultValue;
             }
 
-            const decrypted = decryptData(encrypted, ENCRYPTION_KEY);
+            // Try decrypting with primary key
+            let decrypted = decryptData(encrypted, ENCRYPTION_KEY);
+
+            // Migration layer: if decryption fails and legacy key is different, try legacy key
+            if (decrypted === null && ENCRYPTION_KEY !== LEGACY_ENCRYPTION_KEY) {
+                decrypted = decryptData(encrypted, LEGACY_ENCRYPTION_KEY);
+                if (decrypted !== null) {
+                    // Migrate data to new key
+                    console.info(`Migrating storage key "${key}" to dynamic device key...`);
+                    this.setItem(key, decrypted);
+                }
+            }
+
             return decrypted !== null ? decrypted : defaultValue;
         } catch (error) {
             console.error(`Storage retrieval error for key "${key}":`, error);

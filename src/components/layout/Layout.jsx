@@ -34,6 +34,7 @@ import {
 import packageJson from '../../../package.json';
 import { secureStorage } from '../../utils/security';
 import { isFeatureEnabled } from '../../utils/featureFlags';
+import { getLevelBadge } from '../../utils/levelSystem';
 import CommandPalette from './CommandPalette';
 import ReferralModal from './ReferralModal';
 
@@ -43,7 +44,7 @@ import ReferralModal from './ReferralModal';
  * Provides responsive application shell with mobile menu and modern navbar
  */
 const Layout = ({ children }) => {
-    const { user, logout, updateSettings } = useAuthStore();
+    const { user, logout, updateSettings, currentLevel } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -309,8 +310,11 @@ const Layout = ({ children }) => {
     };
 
     // Navigation items configuration
-    // 🎯 Level 2: Battle Arena conditionally shown based on user level
-    const showArena = !isFeatureEnabled('DISABLE_COMPETITION');
+    // 🎯 Level-Aware: Battle Arena is shown only once user reaches Level 2+
+    // This reads from the live currentLevel in the auth store, which is
+    // recalculated after every test — no manual flag changes needed.
+    const showArena = currentLevel >= 2;
+    const showExams = currentLevel >= 3;
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -318,6 +322,7 @@ const Layout = ({ children }) => {
         { icon: Keyboard, label: 'Typing Test', path: '/test' },
         { icon: Gamepad2, label: 'Gamification', path: '/gamification' },
         ...(showArena ? [{ icon: Swords, label: 'Battle Arena', path: '/arena' }] : []),
+        ...(showExams ? [{ icon: Trophy, label: 'Certifications', path: '/exams' }] : []),
     ];
 
     const currentPage = navItems.find(i => i.path === location.pathname)?.label || 'TypeMaster Pro';
@@ -341,6 +346,34 @@ const Layout = ({ children }) => {
 
                 {/* Navigation Links */}
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar pb-2">
+
+                    {/* Level Badge Chip */}
+                    {(() => {
+                        const badge = getLevelBadge(currentLevel || 1);
+                        const colors = {
+                            1: 'from-emerald-600/20 to-emerald-900/20 border-emerald-500/20 text-emerald-400',
+                            2: 'from-indigo-600/20 to-indigo-900/20 border-indigo-500/20 text-indigo-400',
+                            3: 'from-orange-600/20 to-orange-900/20 border-orange-500/20 text-orange-400',
+                            4: 'from-purple-600/20 to-purple-900/20 border-purple-500/20 text-purple-400',
+                        };
+                        const cls = colors[currentLevel || 1] || colors[1];
+                        return (
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border bg-gradient-to-r ${cls} mb-3`}>
+                                <span style={{ fontSize: 16 }}>{badge.emoji}</span>
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-widest font-bold opacity-60">Current Level</div>
+                                    <div className="text-xs font-bold leading-none">{badge.title}</div>
+                                </div>
+                                {currentLevel < 4 && (
+                                    <div className="ml-auto text-[9px] opacity-50 font-mono">Lvl {currentLevel}</div>
+                                )}
+                                {currentLevel >= 4 && (
+                                    <span className="ml-auto text-[10px]">👑</span>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-4 mt-2">Menu</div>
                     {navItems.map((item) => {
                         const Icon = item.icon;

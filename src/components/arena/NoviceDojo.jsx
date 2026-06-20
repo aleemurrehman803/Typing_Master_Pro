@@ -12,12 +12,21 @@ const NoviceDojo = () => {
     const { user } = useAuthStore();
     const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
     const [isReady, setIsReady] = useState(false);
+    const [suddenDeath, setSuddenDeath] = useState(false);
+    const [aiPersonality, setAiPersonality] = useState('standard');
 
     const difficulties = [
         { id: 'easy', name: 'Beginner Bot', wpm: '20-30 WPM', color: 'green' },
         { id: 'medium', name: 'Intermediate AI', wpm: '40-50 WPM', color: 'yellow' },
         { id: 'hard', name: 'Advanced Opponent', wpm: '60-70 WPM', color: 'orange' },
         { id: 'expert', name: 'Expert Challenge', wpm: '80-90 WPM', color: 'red' }
+    ];
+
+    const personalities = [
+        { id: 'standard', name: 'Standard AI', desc: 'Default pacing' },
+        { id: 'rusher', name: 'The Rusher', desc: 'Starts fast, chokes later' },
+        { id: 'sniper', name: 'The Sniper', desc: 'Slow, steady, 100% accurate' },
+        { id: 'choke', name: 'The Choke', desc: 'Fast, freezes near completion' }
     ];
 
     return (
@@ -45,44 +54,89 @@ const NoviceDojo = () => {
                 {/* Main Content */}
                 <div className="grid md:grid-cols-2 gap-8">
                     {/* Left: Difficulty Selection */}
-                    <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <Swords className="w-5 h-5 text-indigo-400" />
-                            Select Opponent
-                        </h2>
+                    <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 flex flex-col justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Swords className="w-5 h-5 text-indigo-400" />
+                                Select Opponent
+                            </h2>
 
-                        <div className="space-y-3">
-                            {difficulties.map((diff) => (
-                                <div
-                                    key={diff.id}
-                                    onClick={() => setSelectedDifficulty(diff.id)}
-                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${selectedDifficulty === diff.id
-                                        ? `border-${diff.color}-500 bg-${diff.color}-500/10`
-                                        : 'border-slate-700 hover:border-slate-600'
-                                        }`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="font-bold text-white">{diff.name}</h3>
-                                            <p className="text-sm text-slate-400">{diff.wpm}</p>
+                            <div className="space-y-3">
+                                {difficulties.map((diff) => (
+                                    <div
+                                        key={diff.id}
+                                        onClick={() => setSelectedDifficulty(diff.id)}
+                                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${selectedDifficulty === diff.id
+                                            ? `border-${diff.color}-500 bg-${diff.color}-500/10`
+                                            : 'border-slate-700 hover:border-slate-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-bold text-white">{diff.name}</h3>
+                                                <p className="text-sm text-slate-400">{diff.wpm}</p>
+                                            </div>
+                                            {selectedDifficulty === diff.id && (
+                                                <div className={`w-3 h-3 rounded-full bg-${diff.color}-500 animate-pulse`}></div>
+                                            )}
                                         </div>
-                                        {selectedDifficulty === diff.id && (
-                                            <div className={`w-3 h-3 rounded-full bg-${diff.color}-500 animate-pulse`}></div>
-                                        )}
                                     </div>
+                                ))}
+                            </div>
+
+                            {/* AI Personality Selector */}
+                            <div className="mt-6">
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">AI Personality</h3>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    {personalities.map(p => (
+                                        <div
+                                            key={p.id}
+                                            onClick={() => setAiPersonality(p.id)}
+                                            className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+                                                aiPersonality === p.id 
+                                                    ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-lg shadow-indigo-500/5' 
+                                                    : 'border-slate-700 text-slate-400 hover:border-slate-650'
+                                            }`}
+                                        >
+                                            <div className="font-bold">{p.name}</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{p.desc}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
+
+                            {/* Sudden Death Mode Toggle */}
+                            <div className="mt-6 flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-slate-700/50">
+                                <div>
+                                    <h3 className="font-bold text-white text-sm">Sudden Death Mode</h3>
+                                    <p className="text-xs text-rose-400 mt-0.5 font-semibold">One mistake = Instant Game Over!</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={suddenDeath}
+                                        onChange={(e) => setSuddenDeath(e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                                </label>
+                            </div>
                         </div>
 
                         <button
                             onClick={() => {
-                                // Store selected difficulty for battle
                                 const selectedDiff = difficulties.find(d => d.id === selectedDifficulty);
                                 const wpmRange = selectedDiff.wpm.split('-')[0];
-                                localStorage.setItem('arena_opponent', JSON.stringify({ wpm: parseInt(wpmRange) }));
+                                localStorage.setItem('arena_opponent', JSON.stringify({ 
+                                    wpm: parseInt(wpmRange),
+                                    name: selectedDiff.name,
+                                    personality: aiPersonality,
+                                    suddenDeath: suddenDeath,
+                                    mode: 'practice'
+                                }));
                                 navigate('/arena/battle');
                             }}
-                            className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+                            className="mt-8 w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
                         >
                             <Play className="w-5 h-5" />
                             Start Practice Match

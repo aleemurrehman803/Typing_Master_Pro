@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../store/useAuthStore';
 
 // --- Utility Components ---
 const cn = (...inputs) => twMerge(clsx(inputs));
@@ -52,36 +53,50 @@ const TypewriterText = ({ text, speed = 30 }) => {
 };
 
 // --- Particle Background ---
-const ParticleBackground = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-20">
-        {[...Array(20)].map((_, i) => (
-            <motion.div
-                key={i}
-                className="absolute bg-indigo-500/30 rounded-full"
-                initial={{
-                    x: Math.random() * 100 + "%",
-                    y: Math.random() * 100 + "%",
-                    scale: Math.random() * 2 + 0.5,
-                    opacity: 0.3
-                }}
-                animate={{
-                    y: [null, Math.random() * -20 + "%"],
-                    opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{
-                    duration: Math.random() * 5 + 5,
-                    repeat: Infinity,
-                    ease: "linear"
-                }}
-                style={{
-                    width: Math.random() * 300 + "px",
-                    height: Math.random() * 300 + "px",
-                    filter: "blur(40px)"
-                }}
-            />
-        ))}
-    </div>
-);
+const ParticleBackground = () => {
+    const particles = React.useMemo(() => {
+        return Array.from({ length: 20 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100 + "%",
+            y: Math.random() * 100 + "%",
+            scale: Math.random() * 2 + 0.5,
+            animateY: Math.random() * -20 + "%",
+            duration: Math.random() * 5 + 5,
+            size: Math.random() * 300 + "px"
+        }));
+    }, []);
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-20">
+            {particles.map((p) => (
+                <motion.div
+                    key={p.id}
+                    className="absolute bg-indigo-500/30 rounded-full"
+                    initial={{
+                        x: p.x,
+                        y: p.y,
+                        scale: p.scale,
+                        opacity: 0.3
+                    }}
+                    animate={{
+                        y: [null, p.animateY],
+                        opacity: [0.3, 0.6, 0.3]
+                    }}
+                    transition={{
+                        duration: p.duration,
+                        repeat: Infinity,
+                        ease: "linear"
+                    }}
+                    style={{
+                        width: p.size,
+                        height: p.size,
+                        filter: "blur(40px)"
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
 
 // --- Game Card Component ---
 const GameCard = ({ title, subtitle, description, tags, icon: Icon, color, status, delay, path }) => {
@@ -173,20 +188,77 @@ const GameCard = ({ title, subtitle, description, tags, icon: Icon, color, statu
     );
 };
 
-// --- Daily Operations Module ---
-const DailyOperations = () => {
-    // Mock Data
+// --- SVG Sparkline Graph ---
+const Sparkline = ({ history }) => {
+    const data = history && history.length > 0 
+        ? history.slice(-10).map(t => t.wpm)
+        : [30, 38, 35, 45, 40, 50, 48, 55, 62, 58]; // default mock progression if history empty
+
+    if (data.length < 2) return <div className="text-slate-500 text-xs italic">Not enough data to graph</div>;
+
+    const width = 300;
+    const height = 60;
+    const maxVal = Math.max(...data);
+    const minVal = Math.min(...data);
+    const range = maxVal - minVal || 1;
+
+    const points = data.map((val, index) => {
+        const x = (index / (data.length - 1)) * width;
+        const y = height - ((val - minVal) / range) * height * 0.8 - height * 0.1;
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <div className="w-full flex flex-col items-center">
+            <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible mt-2">
+                <defs>
+                    <filter id="sparkline-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#06b6d4" floodOpacity="0.4"/>
+                    </filter>
+                </defs>
+                <polyline
+                    fill="none"
+                    stroke="url(#sparkline-gradient)"
+                    strokeWidth="3"
+                    points={points}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#sparkline-glow)"
+                />
+                <linearGradient id="sparkline-gradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#06b6d4" />
+                    <stop offset="50%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#ec4899" />
+                </linearGradient>
+            </svg>
+            <div className="flex justify-between w-full text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2 px-1">
+                <span>Start</span>
+                <span>Current ({data[data.length - 1]} WPM)</span>
+            </div>
+        </div>
+    );
+};
+
+// --- Nexus Command Center (3-Column Dashboard) ---
+const NexusCommandCenter = () => {
+    const { user } = useAuthStore();
+    const stats = user?.stats || { testsTaken: 0, avgWpm: 0, bestWpm: 0, accuracy: 0, history: [] };
     const [timeLeft, setTimeLeft] = useState('');
 
-    // Enhanced Data State
     const MISSIONS = [
         { id: 1, title: "Void Hunter", desc: "Destroy 50 asteroids in Galactic Typist", progress: 35, total: 50, reward: "200 XP", icon: Rocket, color: "indigo", completed: false },
         { id: 2, title: "Perfect Sync", desc: "Get 10 Perfect hits in Rhythm Keystrokes", progress: 2, total: 10, reward: "500 XP", icon: Music, color: "fuchsia", completed: false },
         { id: 3, title: "Code Breaker", desc: "Complete 3 Snippets without error", progress: 3, total: 3, reward: "300 XP", icon: Code, color: "emerald", completed: true },
     ];
 
+    const ELITE_AGENTS = [
+        { rank: 1, name: "Neo_V2", wpm: 156, tier: "Legendary", color: "from-amber-400 to-yellow-500" },
+        { rank: 2, name: "Cipher_Queen", wpm: 142, tier: "Grandmaster", color: "from-slate-300 to-slate-400" },
+        { rank: 3, name: "Glitch0", wpm: 138, tier: "Master", color: "from-amber-600 to-orange-700" }
+    ];
+
     useEffect(() => {
-        const interval = setInterval(() => {
+        const updateTime = () => {
             const now = new Date();
             const midnight = new Date();
             midnight.setHours(24, 0, 0, 0);
@@ -196,8 +268,9 @@ const DailyOperations = () => {
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
 
             setTimeLeft(`${hours}h ${minutes}m`);
-        }, 60000);
-
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 60000);
         return () => clearInterval(interval);
     }, []);
 
@@ -213,99 +286,112 @@ const DailyOperations = () => {
             <div className="flex items-end justify-between mb-8 px-4">
                 <div>
                     <h2 className="text-3xl font-black text-white italic tracking-tighter flex items-center gap-3">
-                        <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">DAILY OPERATIONS</span>
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">NEXUS COMMAND CENTER</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
                     </h2>
-                    <p className="text-slate-400 text-sm mt-1 font-medium tracking-wide">COMPLETE OBJECTIVES TO EARN SEASON XP</p>
+                    <p className="text-slate-400 text-sm mt-1 font-medium tracking-wide uppercase">OVERSEE SECTOR METRICS & OPERATIONS</p>
                 </div>
-                <div className="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 shadow-xl">
-                    <Timer className="w-4 h-4 text-orange-400 animate-spin-slow" />
-                    <span className="text-orange-400 font-mono font-bold text-sm tracking-wider">{timeLeft || "CALCULATING..."}</span>
+                <div className="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-800 shadow-xl">
+                    <Timer className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span className="text-cyan-400 font-mono font-bold text-sm tracking-wider">{timeLeft || "CALCULATING..."}</span>
                 </div>
             </div>
 
-            {/* Missions Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {MISSIONS.map((mission, idx) => (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.1 }}
-                        key={mission.id}
-                        className={cn(
-                            "relative overflow-hidden rounded-2xl p-[1px] group h-full",
-                            "bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 hover:from-white/20 hover:to-white/5 transition-all duration-500"
-                        )}
-                    >
-                        {/* Inner Card */}
-                        <div className="relative h-full bg-slate-950 rounded-[15px] p-6 flex flex-col justify-between overflow-hidden group-hover:bg-slate-900/90 transition-colors">
-                            {/* Glow Effect */}
-                            <div className={cn(
-                                "absolute -top-20 -right-20 w-40 h-40 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-700",
-                                `bg-${mission.color}-500`
-                            )} />
+            {/* 3-Column Dashboard Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* Column A: Daily Operations */}
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl p-6 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                    <div>
+                        <h3 className="text-lg font-extrabold text-white mb-2 flex items-center gap-2">
+                            <Target className="w-5 h-5 text-orange-400" />
+                            Daily Operations
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mb-4">Complete daily protocols for bonus XP.</p>
+                    </div>
 
-                            {/* Mission Header */}
-                            <div className="flex justify-between items-start mb-4 relative z-10">
-                                <div className={cn(
-                                    "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
-                                    `bg-${mission.color}-500/10 text-${mission.color}-400 border border-${mission.color}-500/20`
-                                )}>
-                                    <mission.icon className="w-6 h-6" />
-                                </div>
-                                {mission.completed ? (
-                                    <div className="flex items-center gap-1 text-emerald-400 text-xs font-black uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                                        <CheckCircle className="w-3 h-3" /> Complete
+                    <div className="space-y-4 flex-1">
+                        {MISSIONS.map(m => (
+                            <div key={m.id} className="p-3 bg-slate-950/60 rounded-2xl border border-slate-900 hover:border-slate-800 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <m.icon className="w-4 h-4 text-slate-400" />
+                                        <span className={`text-xs font-bold ${m.completed ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{m.title}</span>
                                     </div>
-                                ) : (
-                                    <div className="flex items-center gap-1 text-orange-400 text-xs font-black uppercase tracking-wider bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20">
-                                        <Target className="w-3 h-3" /> Active
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Mission Content */}
-                            <div className="mb-6 relative z-10">
-                                <h3 className={cn(
-                                    "text-xl font-bold mb-2 transition-colors",
-                                    mission.completed ? "text-slate-500 line-through decoration-emerald-500/50" : "text-white"
-                                )}>
-                                    {mission.title}
-                                </h3>
-                                <p className="text-slate-400 text-sm leading-relaxed">{mission.desc}</p>
-                            </div>
-
-                            {/* Progress & Reward */}
-                            <div className="relative z-10">
-                                <div className="flex justify-between text-xs font-bold font-mono text-slate-500 mb-2 uppercase tracking-tight">
-                                    <span>Progress</span>
-                                    <span className={cn(mission.completed && "text-emerald-400")}>{Math.round((mission.progress / mission.total) * 100)}%</span>
+                                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${m.completed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'}`}>
+                                        {m.completed ? 'Done' : 'Active'}
+                                    </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-4">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        whileInView={{ width: `${(mission.progress / mission.total) * 100}%` }}
-                                        transition={{ duration: 1, ease: "easeOut" }}
-                                        className={cn(
-                                            "h-full rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] relative overflow-hidden",
-                                            mission.completed ? "bg-emerald-500" : `bg-${mission.color}-500`
-                                        )}
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
-                                    </motion.div>
-                                </div>
-
-                                <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Rewards</div>
-                                    <div className="flex items-center gap-1.5 text-yellow-400 font-bold text-sm drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]">
-                                        <Crown className="w-3.5 h-3.5 fill-current" /> {mission.reward}
-                                    </div>
+                                <p className="text-[10px] text-slate-400 mb-2 leading-relaxed">{m.desc}</p>
+                                <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${m.completed ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${(m.progress / m.total) * 100}%` }} />
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                </div>
 
+                {/* Column B: Neural Metrics */}
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl p-6 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                    <div>
+                        <h3 className="text-lg font-extrabold text-white mb-2 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-cyan-400" />
+                            Neural Metrics
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mb-4">Real-time telemetry and progression curves.</p>
+                    </div>
+
+                    <div className="py-4 flex-1 flex flex-col justify-center">
+                        <Sparkline history={stats.history} />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 border-t border-slate-800/80 pt-4 text-center mt-4">
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900">
+                            <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Tests</span>
+                            <span className="text-lg font-black text-white font-mono">{stats.testsTaken || 0}</span>
                         </div>
-                    </motion.div>
-                ))}
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900">
+                            <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Avg Acc</span>
+                            <span className="text-lg font-black text-cyan-400 font-mono">{stats.accuracy || 0}%</span>
+                        </div>
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900">
+                            <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Best WPM</span>
+                            <span className="text-lg font-black text-pink-400 font-mono">{stats.bestWpm || 0}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Column C: Elite Agents */}
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl p-6 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                    <div>
+                        <h3 className="text-lg font-extrabold text-white mb-2 flex items-center gap-2">
+                            <Crown className="w-5 h-5 text-purple-400 animate-pulse" />
+                            Elite Agents
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mb-4">Top ranking sector operatives.</p>
+                    </div>
+
+                    <div className="space-y-3 flex-1 flex flex-col justify-center">
+                        {ELITE_AGENTS.map((agent) => (
+                            <div key={agent.name} className="flex items-center justify-between p-3.5 bg-slate-950/50 rounded-2xl border border-slate-900 hover:border-slate-800 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${agent.color} flex items-center justify-center font-black text-slate-950 text-xs`}>
+                                        {agent.rank}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-black text-white">{agent.name}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{agent.tier}</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 font-mono">{agent.wpm}</div>
+                                    <div className="text-[9px] text-slate-600 font-bold uppercase">WPM</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
             </div>
         </motion.div>
     );
@@ -422,8 +508,8 @@ const Gamification = () => {
                     />
                 </div>
 
-                {/* Daily Operations Module */}
-                <DailyOperations />
+                {/* Nexus Command Center Dashboard */}
+                <NexusCommandCenter />
 
                 {/* Footer Section */}
                 <div className="mt-32 text-center border-t border-slate-800 pt-10">

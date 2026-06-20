@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Award, Printer, Edit3, Calendar, User, Mail, Phone, FileText } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import signatureImg from '../assets/signature.png';
+import { DbService } from '../services/db.service';
 
 const Certificates = () => {
     const { user } = useAuthStore();
@@ -12,9 +13,10 @@ const Certificates = () => {
     const certificateRef = useRef(null);
 
     // Get recent high scores (e.g., > 30 WPM)
-    const recentTests = JSON.parse(localStorage.getItem('recent_tests') || '[]')
-        .filter(test => test.userId === user?.id && test.wpm > 0)
-        .slice(0, 5);
+    const recentTests = React.useMemo(() => {
+        const history = user?.stats?.history || [];
+        return history.filter(test => test.wpm > 0).slice(-5).reverse();
+    }, [user?.stats?.history]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -92,29 +94,24 @@ const Certificates = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Save certificate to "Database" (localStorage) whenever it's ready
+    // Save certificate to database (hybrid handles fallback)
     useEffect(() => {
-        if (formData.certificateId && (formData.wpm > 0 || formData.grossSpeed > 0)) {
-            const saveCertificate = () => {
+        if (formData.certificateId && (formData.wpm > 0 || formData.grossSpeed > 0) && user?.id) {
+            const saveCert = async () => {
                 try {
-                    const storedCertificates = JSON.parse(localStorage.getItem('issued_certificates') || '[]');
-                    const existingIndex = storedCertificates.findIndex(c => c.certificateId === formData.certificateId);
-
-                    if (existingIndex >= 0) {
-                        storedCertificates[existingIndex] = formData;
-                    } else {
-                        storedCertificates.push(formData);
-                    }
-
-                    localStorage.setItem('issued_certificates', JSON.stringify(storedCertificates));
-                    console.log('✅ Certificate saved:', formData.certificateId, 'Total:', storedCertificates.length);
+                    await DbService.saveCertificate(user.id, {
+                        certificateId: formData.certificateId,
+                        code: formData.certificateId,
+                        testId: selectedTest?.id || `test_${formData.date}`,
+                        ...formData
+                    });
                 } catch (error) {
                     console.error("❌ Failed to save certificate:", error);
                 }
             };
-            saveCertificate();
+            saveCert();
         }
-    }, [formData]);
+    }, [formData, user?.id, selectedTest]);
 
     const handlePrint = () => {
         window.print();

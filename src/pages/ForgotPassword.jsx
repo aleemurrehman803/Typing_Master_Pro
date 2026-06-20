@@ -176,10 +176,11 @@ const ForgotPassword = () => {
                 {step === 1 && (
                     <form onSubmit={handleEmailSubmit} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            <label htmlFor="reset-email" className="block text-sm font-semibold text-slate-700 mb-2">
                                 Email Address
                             </label>
                             <input
+                                id="reset-email"
                                 type="email"
                                 required
                                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -204,10 +205,11 @@ const ForgotPassword = () => {
                     <form onSubmit={handleSecuritySubmit} className="space-y-5">
                         {user.securityQuestions.map((q, index) => (
                             <div key={index}>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label htmlFor={`security-answer-${index}`} className="block text-sm font-semibold text-slate-700 mb-2">
                                     {q.question}
                                 </label>
                                 <input
+                                    id={`security-answer-${index}`}
                                     type="text"
                                     required
                                     className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -232,10 +234,11 @@ const ForgotPassword = () => {
                 {step === 3 && (
                     <form onSubmit={handlePasswordReset} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            <label htmlFor="reset-password" className="block text-sm font-semibold text-slate-700 mb-2">
                                 New Password
                             </label>
                             <input
+                                id="reset-password"
                                 type="password"
                                 required
                                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -247,10 +250,11 @@ const ForgotPassword = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            <label htmlFor="reset-confirm" className="block text-sm font-semibold text-slate-700 mb-2">
                                 Confirm Password
                             </label>
                             <input
+                                id="reset-confirm"
                                 type="password"
                                 required
                                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"

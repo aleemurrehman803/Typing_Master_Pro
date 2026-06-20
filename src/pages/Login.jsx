@@ -95,7 +95,7 @@ const Login = () => {
 
                 {/* Error Alert */}
                 {authError && (
-                    <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div role="alert" aria-live="assertive" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                         <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <p className="text-sm text-red-800 font-medium">{authError}</p>
@@ -103,6 +103,7 @@ const Login = () => {
                         <button
                             onClick={clearError}
                             className="text-red-400 hover:text-red-600 transition"
+                            aria-label="Dismiss error"
                         >
                             ×
                         </button>
@@ -113,10 +114,11 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Email Field */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="login-email" className="block text-sm font-semibold text-slate-700 mb-2">
                             Email Address
                         </label>
                         <input
+                            id="login-email"
                             type="email"
                             required
                             className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -131,11 +133,12 @@ const Login = () => {
 
                     {/* Password Field */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="login-password" className="block text-sm font-semibold text-slate-700 mb-2">
                             Password
                         </label>
                         <div className="relative">
                             <input
+                                id="login-password"
                                 type={showPassword ? 'text' : 'password'}
                                 required
                                 className="w-full px-4 py-3 pr-12 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -164,8 +167,9 @@ const Login = () => {
 
                     {/* Remember Me & Forgot Password */}
                     <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label htmlFor="login-remember" className="flex items-center gap-2 cursor-pointer">
                             <input
+                                id="login-remember"
                                 type="checkbox"
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}

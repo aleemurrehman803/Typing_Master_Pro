@@ -144,10 +144,11 @@ const Register = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Name Field */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="reg-name" className="block text-sm font-semibold text-slate-700 mb-2">
                             Full Name
                         </label>
                         <input
+                            id="reg-name"
                             type="text"
                             required
                             className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -163,10 +164,11 @@ const Register = () => {
 
                     {/* Email Field */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="reg-email" className="block text-sm font-semibold text-slate-700 mb-2">
                             Email Address
                         </label>
                         <input
+                            id="reg-email"
                             type="email"
                             required
                             className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -180,11 +182,12 @@ const Register = () => {
 
                     {/* Password Field with Strength Meter */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="reg-password" className="block text-sm font-semibold text-slate-700 mb-2">
                             Password
                         </label>
                         <div className="relative">
                             <input
+                                id="reg-password"
                                 type={showPassword ? 'text' : 'password'}
                                 required
                                 className="w-full px-4 py-3 pr-12 rounded-lg border-2 border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -200,6 +203,7 @@ const Register = () => {
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1"
                                 tabIndex={-1}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -236,11 +240,12 @@ const Register = () => {
 
                     {/* Confirm Password Field */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label htmlFor="reg-confirm" className="block text-sm font-semibold text-slate-700 mb-2">
                             Confirm Password
                         </label>
                         <div className="relative">
                             <input
+                                id="reg-confirm"
                                 type={showConfirmPassword ? 'text' : 'password'}
                                 required
                                 className={`w-full px-4 py-3 pr-12 rounded-lg border-2 ${confirmPassword && !passwordMatch
@@ -258,6 +263,7 @@ const Register = () => {
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1"
                                 tabIndex={-1}
+                                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                             >
                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -278,8 +284,9 @@ const Register = () => {
 
                     {/* Terms & Conditions */}
                     <div className="pt-2">
-                        <label className="flex items-start gap-3 cursor-pointer">
+                        <label htmlFor="reg-terms" className="flex items-start gap-3 cursor-pointer">
                             <input
+                                id="reg-terms"
                                 type="checkbox"
                                 checked={acceptTerms}
                                 onChange={(e) => setAcceptTerms(e.target.checked)}

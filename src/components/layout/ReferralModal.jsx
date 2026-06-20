@@ -8,7 +8,9 @@ const ReferralModal = ({ isOpen, onClose }) => {
     const [copied, setCopied] = useState(false);
     
     // Generate a unique referral code if not exists
-    const referralCode = user?.referralCode || `${user?.name?.split(' ')[0]?.toUpperCase() || 'PRO'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const [referralCode] = useState(() => {
+        return user?.referralCode || `${user?.name?.split(' ')[0]?.toUpperCase() || 'PRO'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    });
     const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
 
     const handleCopy = () => {

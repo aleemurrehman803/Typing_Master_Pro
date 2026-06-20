@@ -54,12 +54,38 @@ export const simulateSocialLogin = async (providerId) => {
             try {
                 const provider = OAUTH_PROVIDERS[providerId];
 
-                // Simulate successful OAuth response
+                let identifier = null;
+                if (typeof window !== 'undefined' && window.prompt) {
+                    identifier = window.prompt(`Enter your mock ${provider.name} email or phone number to simulate OAuth login:`, `${providerId}_user@example.com`);
+                }
+
+                // If user cancels or inputs empty, use fallback
+                if (!identifier) {
+                    identifier = `${providerId}_user@example.com`;
+                }
+
+                // If phone number is input, format as unique email format
+                let email = identifier.toLowerCase().trim();
+                let name = `${provider.name} User`;
+
+                if (!email.includes('@')) {
+                    // It's a phone number
+                    const digits = email.replace(/\D/g, '');
+                    email = `phone_${digits || 'default'}@phone.com`;
+                    name = `Phone User (${digits})`;
+                } else {
+                    // Extract name from email if possible
+                    const parts = email.split('@');
+                    if (parts[0]) {
+                        name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + ` (${provider.name})`;
+                    }
+                }
+
                 const mockUserData = {
                     provider: providerId,
-                    providerId: `${providerId}_${Date.now()}`,
-                    name: `${provider.name} User`,
-                    email: `user${Date.now()}@${providerId}.com`,
+                    providerId: `${providerId}_${email}`,
+                    name: name,
+                    email: email,
                     picture: null,
                     verified: true
                 };
@@ -68,7 +94,7 @@ export const simulateSocialLogin = async (providerId) => {
             } catch (error) {
                 reject(new Error(`Failed to login with ${providerId}`));
             }
-        }, 1500); // Simulate network delay
+        }, 1000); // Simulate network delay
     });
 };
 

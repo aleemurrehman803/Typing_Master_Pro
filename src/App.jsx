@@ -3,9 +3,8 @@ import useAuthStore from './store/useAuthStore';
 import { useEffect, Suspense, lazy } from 'react';
 import Layout from './components/layout/Layout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
-import LiveChat from './components/LiveChat';
 import DeviceRestriction from './components/security/DeviceRestriction';
-// import SecurityHeaders from './components/SecurityHeaders';
+import SecurityHeaders from './components/SecurityHeaders';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -15,6 +14,7 @@ const Learn = lazy(() => import('./pages/Learn'));
 const CourseDetail = lazy(() => import('./pages/CourseDetail'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Certificates = lazy(() => import('./pages/Certificates'));
+const Exams = lazy(() => import('./pages/Exams'));
 const Gamification = lazy(() => import('./pages/Gamification'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -35,6 +35,11 @@ const NoviceDojo = lazy(() => import('./components/arena/NoviceDojo'));
 const BattleUI = lazy(() => import('./components/arena/BattleUI'));
 const CompetitiveLeague = lazy(() => import('./components/arena/CompetitiveLeague'));
 const ProCircuit = lazy(() => import('./components/arena/ProCircuit'));
+const ArenaShop = lazy(() => import('./components/arena/ArenaShop'));
+
+// Heavy Root components
+const LiveChat = lazy(() => import('./components/LiveChat'));
+const LevelUnlockModal = lazy(() => import('./components/ui/LevelUnlockModal'));
 
 // Loader
 const PageLoader = () => (
@@ -81,6 +86,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <SecurityHeaders />
       <Router basename={import.meta.env.BASE_URL}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -99,6 +105,7 @@ function App() {
             <Route path="/course/:courseId" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/certificates" element={<ProtectedRoute><Certificates /></ProtectedRoute>} />
+            <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
 
             {/* Games & Arena routes */}
@@ -114,11 +121,18 @@ function App() {
             <Route path="/arena/battle" element={<ProtectedRoute><BattleUI /></ProtectedRoute>} />
             <Route path="/arena/competitive" element={<ProtectedRoute><CompetitiveLeague /></ProtectedRoute>} />
             <Route path="/arena/pro" element={<ProtectedRoute><ProCircuit /></ProtectedRoute>} />
+            <Route path="/arena/shop" element={<ProtectedRoute><ArenaShop /></ProtectedRoute>} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Suspense>
-        <LiveChat />
+        <Suspense fallback={null}>
+          <LiveChat />
+        </Suspense>
+        {/* Global Level Unlock Celebration Modal */}
+        <Suspense fallback={null}>
+          <LevelUnlockModal />
+        </Suspense>
       </Router>
     </ErrorBoundary>
   );

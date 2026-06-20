@@ -32,9 +32,22 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['framer-motion', 'lucide-react', 'recharts']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts')) {
+              return 'recharts';
+            }
+            if (id.includes('framer-motion')) {
+              return 'framer-motion';
+            }
+            if (id.includes('lucide-react')) {
+              return 'lucide-icons';
+            }
+            if (id.includes('crypto-js')) {
+              return 'crypto';
+            }
+            return 'vendor';
+          }
         }
       }
     }

@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { isFeatureEnabled } from '../../utils/featureFlags';
 import useSettingsStore from '../../store/useSettingsStore';
 import { useSoundEngine } from '../../hooks/useSoundEngine';
+import { translateChar } from '../../utils/keyboardLayouts';
 
 /**
  * TypingArea Component
@@ -16,7 +17,7 @@ import { useSoundEngine } from '../../hooks/useSoundEngine';
  */
 const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIndex = -1, invisibleIndex = -1 }) => {
     const inputRef = useRef(null);
-    const { caretStyle } = useSettingsStore();
+    const { caretStyle, keyboardLayout, emulateLayout } = useSettingsStore();
     const { playKeystroke } = useSoundEngine();
 
     // Auto-focus the hidden input when enabled
@@ -51,10 +52,17 @@ const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIn
             return;
         }
 
-        // Feature 12: Mechanical Sound Packs
+        // Feature 12: Mechanical Sound Packs & Emulation
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !disabled) {
+            let typedChar = e.key;
+            if (emulateLayout && keyboardLayout && keyboardLayout !== 'qwerty') {
+                e.preventDefault();
+                typedChar = translateChar(e.key, keyboardLayout);
+                onInput(typedText + typedChar);
+            }
+
             const expectedChar = text[typedText.length];
-            const isError = e.key !== expectedChar;
+            const isError = typedChar !== expectedChar;
             playKeystroke(isError);
         }
     };
@@ -116,11 +124,14 @@ const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIn
 
     return (
         <div
+            role="application"
             className="relative w-full max-w-5xl mx-auto group"
             onClick={handleAreaClick}
         >
             {/* Visual Text Display */}
             <div
+                id="typing-reference-text"
+                aria-label="Reference text to type"
                 className={`
                     relative backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 
                     p-10 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 
@@ -150,6 +161,8 @@ const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIn
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                aria-label="Typing test input field. Begin typing the text presented above."
+                aria-describedby="typing-reference-text"
             />
         </div>
     );

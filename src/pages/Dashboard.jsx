@@ -8,12 +8,14 @@ import {
     X, Save, Bell, Volume2, Moon, Globe, Edit2,
     Upload, Trash2, AlertCircle, FileText, Search, Phone, MapPin,
     BadgeDollarSign, Copy, Check, Facebook, Linkedin, Coins, Sparkles,
-    Banknote, DollarSign
+    Banknote, DollarSign, Lock
 } from 'lucide-react';
 import { BADGES } from '../utils/achievements';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { compressImage } from '../utils/imageUtils';
 import COUNTRY_CODES, { POPULAR_COUNTRIES } from '../utils/countryCodes';
+import NGramChart from '../components/analytics/NGramChart';
+import { checkLevelUnlock, getLevelBadge, LEVEL_REQUIREMENTS, LEVELS } from '../utils/levelSystem';
 
 // Static Chart Configurations
 const ChartTooltipStyle = {
@@ -33,13 +35,36 @@ const ChartGradientDefs = () => (
     </defs>
 );
 
+const PerformanceChart = React.memo(({ data }) => (
+    <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+            <defs>
+                <linearGradient id="colorWpm" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+            <XAxis dataKey="test" stroke="#94a3b8" tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} dx={-10} />
+            <Tooltip
+                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                itemStyle={{ color: '#e2e8f0' }}
+                cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }}
+            />
+            <Area type="monotone" dataKey="wpm" stroke="#6366f1" strokeWidth={3} fill="url(#colorWpm)" animationDuration={1000} />
+        </AreaChart>
+    </ResponsiveContainer>
+));
+PerformanceChart.displayName = 'PerformanceChart';
+
 /**
  * Dashboard Component
  * Displays user statistics, achievements, and allows profile management.
  */
 const Dashboard = () => {
     // ... existing state definitions ...
-    const { user, updateProfile, updateSettings } = useAuthStore();
+    const { user, updateProfile, updateSettings, currentLevel } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState('overview');
@@ -228,10 +253,8 @@ const Dashboard = () => {
     // Certificate Download Logic
     const handleDownloadCertificate = useCallback(() => {
         // Check recent tests for qualification
-        const recentTests = JSON.parse(localStorage.getItem('recent_tests') || '[]')
-            .filter(test => test.userId === user.id);
-
-        const hasQualifyingTest = recentTests.some(test => test.accuracy >= 70 && test.wpm > 0);
+        const history = user?.stats?.history || [];
+        const hasQualifyingTest = history.some(test => test.accuracy >= 70 && test.wpm > 0);
 
         if (hasQualifyingTest) {
             // User qualifies - navigate to certificates page
@@ -261,10 +284,10 @@ const Dashboard = () => {
     const joinedDaysAgo = Math.floor((Date.now() - new Date(user.joinedAt).getTime()) / (1000 * 60 * 60 * 24));
     const testsPerDay = joinedDaysAgo > 0 ? (stats.testsTaken / joinedDaysAgo).toFixed(1) : 0;
 
-    const recentTests = JSON.parse(localStorage.getItem('recent_tests') || '[]')
-        .filter(test => test.userId === user.id)
-        .slice(0, 10)
-        .reverse();
+    const recentTests = useMemo(() => {
+        const history = user?.stats?.history || [];
+        return history.slice(-10);
+    }, [user?.stats?.history]);
 
     const chartData = useMemo(() => {
         return recentTests.map((test, index) => ({
@@ -524,25 +547,7 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                                 <div className="h-[300px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData}>
-                                            <defs>
-                                                <linearGradient id="colorWpm" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
-                                            <XAxis dataKey="test" stroke="#94a3b8" tickLine={false} axisLine={false} dy={10} />
-                                            <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} dx={-10} />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                                                itemStyle={{ color: '#e2e8f0' }}
-                                                cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }}
-                                            />
-                                            <Area type="monotone" dataKey="wpm" stroke="#6366f1" strokeWidth={3} fill="url(#colorWpm)" animationDuration={1500} />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    <PerformanceChart data={chartData} />
                                 </div>
                             </div>
                         ) : (
@@ -564,7 +569,23 @@ const Dashboard = () => {
                             <QuickStat label="Total Errors" value={stats.totalErrors?.toLocaleString() || '0'} icon="❌" color="red" />
                         </div>
 
-                        {/* Community & Rankings Section (Moved from Navbar) */}
+                        {/* ── Level Progress Card ───────────────────────────── */}
+                        <LevelProgressCard currentLevel={currentLevel} stats={stats} />
+
+                        {/* ── N-Gram Analysis (Level 2+ Feature) ───────────── */}
+                        {currentLevel >= 2 && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8 transition-colors">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span style={{ fontSize: 22 }}>🔬</span>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">N-Gram Analysis</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Your slowest letter-pair transitions</p>
+                                    </div>
+                                </div>
+                                <NGramChart />
+                            </div>
+                        )}
+
                         <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-slate-800/80 dark:to-slate-800/50 rounded-2xl p-6 border border-indigo-100 dark:border-slate-700 flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:shadow-lg">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-xl shadow-md flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -1219,6 +1240,138 @@ const ActivityFeed = ({ recentTests }) => {
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">No recent activity. Take a test to get started!</p>
                 </div>
+            )}
+        </div>
+    );
+};
+
+/**
+ * LevelProgressCard
+ * Shows the user's current level, progress toward the next level,
+ * and a preview of features unlocked/locked.
+ */
+const LevelProgressCard = ({ currentLevel = 1, stats }) => {
+    const badge = getLevelBadge(currentLevel);
+    const nextLevel = currentLevel < 4 ? currentLevel + 1 : null;
+    const nextBadge = nextLevel ? getLevelBadge(nextLevel) : null;
+    const nextReqs = nextLevel ? LEVEL_REQUIREMENTS[nextLevel] : null;
+
+    const history = stats?.history || [];
+    const totalTests = stats?.testsTaken || 0;
+    const recentSlice = history.slice(-10);
+    const avgWpm = recentSlice.length > 0
+        ? Math.round(recentSlice.reduce((s, t) => s + (t.wpm || 0), 0) / recentSlice.length)
+        : (stats?.avgWpm || 0);
+    const avgAcc = recentSlice.length > 0
+        ? Math.round(recentSlice.reduce((s, t) => s + (t.accuracy || 0), 0) / recentSlice.length)
+        : (stats?.accuracy || 0);
+
+    const bars = nextReqs ? [
+        {
+            label: 'Avg WPM (last 10)',
+            current: avgWpm,
+            required: nextReqs.minWpm,
+            pct: Math.min(100, nextReqs.minWpm > 0 ? (avgWpm / nextReqs.minWpm) * 100 : 100),
+            color: '#6366f1',
+            unit: 'WPM'
+        },
+        {
+            label: 'Avg Accuracy (last 10)',
+            current: avgAcc,
+            required: nextReqs.minAccuracy,
+            pct: Math.min(100, nextReqs.minAccuracy > 0 ? (avgAcc / nextReqs.minAccuracy) * 100 : 100),
+            color: '#10b981',
+            unit: '%'
+        },
+        {
+            label: 'Total Tests',
+            current: totalTests,
+            required: nextReqs.minTests,
+            pct: Math.min(100, nextReqs.minTests > 0 ? (totalTests / nextReqs.minTests) * 100 : 100),
+            color: '#f59e0b',
+            unit: 'tests'
+        }
+    ] : [];
+
+    const allMet = nextReqs && avgWpm >= nextReqs.minWpm && avgAcc >= nextReqs.minAccuracy && totalTests >= nextReqs.minTests;
+
+    return (
+        <div style={{
+            background: 'linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 20,
+            padding: '28px 32px',
+            marginBottom: 0
+        }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                        width: 56, height: 56, borderRadius: '50%',
+                        background: currentLevel === 1 ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+                            : currentLevel === 2 ? 'linear-gradient(135deg,#6366f1,#4f46e5)'
+                            : currentLevel === 3 ? 'linear-gradient(135deg,#f97316,#ef4444)'
+                            : 'linear-gradient(135deg,#a855f7,#ec4899)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 26, boxShadow: '0 4px 20px rgba(99,102,241,0.4)'
+                    }}>
+                        {badge.emoji}
+                    </div>
+                    <div>
+                        <p style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Current Level</p>
+                        <h3 style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 800, margin: '2px 0 0' }}>
+                            Level {currentLevel} — {badge.title}
+                        </h3>
+                    </div>
+                </div>
+                {allMet && (
+                    <div style={{
+                        background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)',
+                        color: '#34d399', padding: '6px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600
+                    }}>
+                        ✅ Ready to unlock Level {nextLevel}!
+                    </div>
+                )}
+            </div>
+
+            {nextReqs ? (
+                <>
+                    {/* Progress to next level */}
+                    <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+                        Progress toward <strong style={{ color: nextBadge?.title === 'Intermediate' ? '#818cf8' : nextBadge?.title === 'Advanced' ? '#fb923c' : '#c084fc' }}>
+                            Level {nextLevel} ({nextBadge?.title})
+                        </strong> — meet all 3 criteria to auto-unlock:
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {bars.map((bar) => (
+                            <div key={bar.label}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 13, color: '#94a3b8' }}>{bar.label}</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: bar.current >= bar.required ? '#34d399' : '#f1f5f9' }}>
+                                        {bar.current} / {bar.required} {bar.unit}
+                                        {bar.current >= bar.required ? ' ✅' : ''}
+                                    </span>
+                                </div>
+                                <div style={{ background: '#1e293b', borderRadius: 999, height: 8, overflow: 'hidden' }}>
+                                    <div style={{
+                                        width: `${bar.pct}%`,
+                                        height: '100%',
+                                        background: bar.current >= bar.required
+                                            ? 'linear-gradient(90deg,#10b981,#34d399)'
+                                            : `linear-gradient(90deg, ${bar.color}, ${bar.color}cc)`,
+                                        borderRadius: 999,
+                                        transition: 'width 0.6s ease'
+                                    }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            ) : (
+                <p style={{ color: '#34d399', fontWeight: 600, fontSize: 15 }}>
+                    👑 You have reached the maximum level — Expert!
+                </p>
             )}
         </div>
     );

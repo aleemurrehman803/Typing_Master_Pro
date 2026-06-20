@@ -122,6 +122,18 @@ const ZenGarden = () => {
     // Decorative Elements based on Growth
     const bloomingFlowers = Math.floor(growth / 10);
 
+    // Stable, deterministic calculations for floating petals to prevent wiggles/snaps during re-renders
+    const petals = React.useMemo(() => {
+        const count = bloomingFlowers * 2;
+        return Array.from({ length: count }, (_, i) => ({
+            id: i,
+            initialY: `${(i * 17) % 100}vh`,
+            animateY1: `${(i * 29) % 100}vh`,
+            animateY2: `${(i * 41) % 100}vh`,
+            duration: 15 + ((i * 7) % 10)
+        }));
+    }, [bloomingFlowers]);
+
     return (
         <div className="min-h-screen bg-[#fdfcfb] dark:bg-[#0f172a] transition-colors duration-1000 overflow-hidden relative font-sans">
             {/* Zen Background Elements */}
@@ -130,17 +142,17 @@ const ZenGarden = () => {
                 <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-200 blur-[120px] rounded-full animate-pulse delay-1000" />
 
                 {/* Floating Petals */}
-                {[...Array(bloomingFlowers * 2)].map((_, i) => (
+                {petals.map((p) => (
                     <motion.div
-                        key={i}
+                        key={p.id}
                         className="absolute w-4 h-4 bg-rose-200/60 dark:bg-rose-900/40 rounded-full"
-                        initial={{ x: '-10vw', y: `${Math.random() * 100}vh`, rotate: 0 }}
+                        initial={{ x: '-10vw', y: p.initialY, rotate: 0 }}
                         animate={{
                             x: '110vw',
-                            y: [`${Math.random() * 100}vh`, `${Math.random() * 100}vh`],
+                            y: [p.animateY1, p.animateY2],
                             rotate: 360
                         }}
-                        transition={{ duration: 15 + Math.random() * 10, repeat: Infinity, ease: 'linear' }}
+                        transition={{ duration: p.duration, repeat: Infinity, ease: 'linear' }}
                     />
                 ))}
             </div>

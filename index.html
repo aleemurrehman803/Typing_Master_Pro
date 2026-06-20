@@ -36,18 +36,22 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
+
+  <!-- Security: Content Security Policy (Production) -->
+  <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; 
+               script-src 'self'; 
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+               img-src 'self' data: https:; 
+               font-src 'self' data: https://fonts.gstatic.com; 
+               connect-src 'self' https://*.supabase.co https://*.supabase.in https://worldtimeapi.org; 
+               frame-ancestors 'none'; 
+               base-uri 'self'; 
+               form-action 'self';" />
 </head>
 
 <body>
   <div id="root"></div>
-
-  <!-- Global Error Handler -->
-  <script>
-    window.onerror = function (message, source, lineno, colno, error) {
-      if (message.includes('Script error')) return; // Ignore third-party script errors
-      console.error("APPLICATION CRASH:", message, error);
-    };
-  </script>
 
   <!-- Main Entry Point -->
   <script type="module" src="/src/main.jsx"></script>

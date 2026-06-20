@@ -8,16 +8,19 @@ import { checkAchievements } from '../utils/achievements';
 import { getLessonById } from '../utils/lessons';
 import useAuthStore from '../store/useAuthStore';
 import useSettingsStore from '../store/useSettingsStore';
+import JennyAI from '../utils/JennyAI';
+import jennyReal from '../assets/jenny_real.jpg';
 import { useVoiceDictation } from '../hooks/useVoiceDictation';
 import { isFeatureEnabled } from '../utils/featureFlags';
 import { RefreshCw, Trophy, ArrowLeft, BookOpen, Edit3, List, Code, EyeOff, Sparkles, Skull, Mic, MicOff, Terminal, Volume2, VolumeX, Flame } from 'lucide-react';
 import { CODE_SNIPPETS } from '../utils/testContent';
+import { getAdaptiveText, getAdaptiveDifficulty, getDifficultyMeta } from '../utils/adaptiveDifficulty';
 import KeyboardVisualization from '../components/features/KeyboardVisualization';
 import { MULTI_LANG_PARAGRAPHS } from '../utils/languageContent';
 import { secureStorage } from '../utils/security';
 import { calculateNextDrill } from '../utils/tutor';
 import { detectKeyboardPolling } from '../utils/hardware';
-import { ShieldCheck, ShieldAlert, Zap, Cpu, BrainCircuit, Loader2, Wand2 } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Zap, Cpu, BrainCircuit, Loader2, Wand2, Keyboard, ToggleLeft } from 'lucide-react';
 import { generateAIParagraph } from '../utils/aiGenerator';
 import { soundEngine } from '../utils/soundEngine';
 import DynamicBackground from '../components/features/DynamicBackground';
@@ -94,11 +97,30 @@ const Test = () => {
     const [bossIndex, setBossIndex] = useState(-1);
     const [failedBossFight, setFailedBossFight] = useState(false);
 
+    // 🎯 Level 2: Adaptive Difficulty
+    const [isAdaptiveMode, setIsAdaptiveMode] = useState(false);
+    const [adaptiveDiff, setAdaptiveDiff] = useState('beginner');
+
+    // Update adaptive difficulty whenever user stats change
+    useEffect(() => {
+        if (isAdaptiveMode && user?.stats) {
+            const diff = getAdaptiveDifficulty(user.stats);
+            setAdaptiveDiff(diff);
+        }
+    }, [isAdaptiveMode, user?.stats]);
+
     // 🎯 Level 2: Speed Challenge State
     const [speedTarget, setSpeedTarget] = useState(null);
 
-    const { user, addAchievement, updateStats, updateLessonProgress } = useAuthStore();
-    const { caretStyle, setCaretStyle, language, setLanguage, soundProfile, setSoundProfile, visualTheme, setVisualTheme } = useSettingsStore();
+    const { user, addAchievement, updateStats, updateLessonProgress, currentLevel } = useAuthStore();
+    const { 
+        caretStyle, setCaretStyle, 
+        language, setLanguage, 
+        soundProfile, setSoundProfile, 
+        visualTheme, setVisualTheme,
+        keyboardLayout, setKeyboardLayout,
+        emulateLayout, setEmulateLayout
+    } = useSettingsStore();
 
     // Feature 38: Initialize Sound Engine
     useEffect(() => {
@@ -124,6 +146,12 @@ const Test = () => {
         setSoundProfile(soundProfiles[nextIndex]);
     };
 
+    const keyboardLayouts = ['qwerty', 'dvorak', 'colemak'];
+    const handleLayoutCycle = () => {
+        const nextIndex = (keyboardLayouts.indexOf(keyboardLayout) + 1) % keyboardLayouts.length;
+        setKeyboardLayout(keyboardLayouts[nextIndex]);
+    };
+
     // Determine current text
     const getCurrentText = useCallback(() => {
         // Feature: Support new 200+ lesson system 'content' property vs old 'text'
@@ -131,8 +159,11 @@ const Test = () => {
         if (mode === 'custom') return customText || "Please enter some custom text to begin.";
         if (mode === 'ai') return aiGeneratedText || "AI generated text will appear here.";
 
+        // 🎯 Level 2: Adaptive mode — auto-pick text based on user performance
+        if (mode === 'adaptive') return getAdaptiveText(user?.stats) || "Practice text not available.";
+
         if (mode === 'code') {
-            const lang = ['javascript', 'python', 'html'].includes(difficulty) ? difficulty : 'javascript';
+            const lang = ['javascript', 'python', 'html', 'rust', 'go', 'typescript'].includes(difficulty) ? difficulty : 'javascript';
             const snippets = CODE_SNIPPETS[lang];
             const s = snippets ? snippets.find(p => p.id === selectedParagraphId) : null;
             return s ? (s.content || s.text) : (snippets ? (snippets[0].content || snippets[0].text) : "Code snippet not found.");
@@ -143,7 +174,7 @@ const Test = () => {
         const allParagraphs = [...(sourceParagraphs.beginner||[]), ...(sourceParagraphs.intermediate||[]), ...(sourceParagraphs.hard||[])];
         const p = allParagraphs.find(p => p.id === selectedParagraphId);
         return p ? (p.content || p.text) : (sourceParagraphs.beginner ? (sourceParagraphs.beginner[0].content || sourceParagraphs.beginner[0].text) : "No content found.");
-    }, [lesson, mode, customText, selectedParagraphId, difficulty, language]);
+    }, [lesson, mode, customText, selectedParagraphId, difficulty, language, user?.stats, isAdaptiveMode]);
 
     const currentText = getCurrentText();
 
@@ -494,6 +525,30 @@ const Test = () => {
                                 <Wand2 className="w-5 h-5" />
                                 <span className="hidden lg:inline">Theme: {visualTheme}</span>
                             </button>
+                            {currentLevel >= 3 && (
+                                <>
+                                    <button
+                                        onClick={handleLayoutCycle}
+                                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors capitalize"
+                                        title="Change Keyboard Layout"
+                                    >
+                                        <Keyboard className="w-5 h-5" />
+                                        <span className="hidden lg:inline">Layout: {keyboardLayout}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setEmulateLayout(!emulateLayout)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+                                            emulateLayout
+                                                ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 ring-2 ring-amber-500'
+                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+                                        }`}
+                                        title="Emulate layout output using physical QWERTY"
+                                    >
+                                        <ToggleLeft className="w-5 h-5" />
+                                        <span className="hidden lg:inline">Emulate</span>
+                                    </button>
+                                </>
+                            )}
                             <button
                                 onClick={() => setIsFocusMode(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
@@ -601,6 +656,35 @@ const Test = () => {
                             >
                                 <Code className="w-4 h-4" /> Code Mode
                             </button>
+                            {/* 🎯 Level 2: Adaptive Mode button — only shown for Level 2+ users */}
+                            {currentLevel >= 2 && (
+                                <button
+                                    id="test-adaptive-mode-btn"
+                                    onClick={() => {
+                                        setMode('adaptive');
+                                        setIsAdaptiveMode(true);
+                                        if (user?.stats) setAdaptiveDiff(getAdaptiveDifficulty(user.stats));
+                                        resetTest();
+                                    }}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all border ${
+                                        mode === 'adaptive'
+                                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+                                            : 'text-slate-500 border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700'
+                                    }`}
+                                    title="Auto-picks difficulty based on your last 10 tests"
+                                >
+                                    <Wand2 className="w-4 h-4" /> Adaptive
+                                    {mode === 'adaptive' && (() => {
+                                        const meta = getDifficultyMeta(adaptiveDiff);
+                                        return (
+                                            <span style={{ background: `${meta.color}22`, color: meta.color, border: `1px solid ${meta.color}44` }}
+                                                className="text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+                                                {meta.emoji} {meta.label}
+                                            </span>
+                                        );
+                                    })()}
+                                </button>
+                            )}
                             <button
                                 onClick={() => setMode('custom')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${mode === 'custom' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
@@ -697,7 +781,10 @@ const Test = () => {
                                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center">
                                         {mode === 'code' ? 'Language:' : 'Difficulty:'}
                                     </label>
-                                    {(mode === 'code' ? ['javascript', 'python', 'html'] : ['beginner', 'intermediate', 'hard']).map((option) => (
+                                    {(mode === 'code'
+                                        ? ['javascript', 'python', 'html', 'rust', 'go', 'typescript']
+                                        : ['beginner', 'intermediate', 'hard']
+                                    ).map((option) => (
                                         <button
                                             key={option}
                                             onClick={() => setDifficulty(option)}
@@ -706,7 +793,13 @@ const Test = () => {
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                                                 }`}
                                         >
-                                            {mode === 'code' && option === 'javascript' ? 'JavaScript' : option}
+                                            {mode === 'code' && option === 'javascript' ? 'JS'
+                                                : mode === 'code' && option === 'typescript' ? 'TS'
+                                                : mode === 'code' && option === 'html' ? 'HTML'
+                                                : mode === 'code' && option === 'rust' ? '🦀 Rust'
+                                                : mode === 'code' && option === 'go' ? '🐹 Go'
+                                                : mode === 'code' && option === 'python' ? '🐍 Py'
+                                                : option}
                                         </button>
                                     ))}
                                 </div>
@@ -794,6 +887,77 @@ const Test = () => {
                         />
                     </div>
                 </div>
+
+                {/* Jenny AI Tutor Feedback */}
+                {isFinished && !failedSuddenDeath && !failedAccuracy && !failedBossFight && (() => {
+                    const jennyInstance = new JennyAI(user);
+                    const detailedErrors = jennyInstance.analyzeErrors(typedText, currentText);
+                    const weakFingers = jennyInstance.detectWeakFingers(detailedErrors);
+                    const drillWords = jennyInstance.generateCustomDrill(detailedErrors);
+                    const coachingMsg = jennyInstance.generateCoachingMessage({
+                        wpm,
+                        accuracy,
+                        testComplete: true
+                    });
+
+                    const handleStartDrill = () => {
+                        if (drillWords.length > 0) {
+                            const drillText = drillWords.join(' ') + ' ' + drillWords.join(' ');
+                            setMode('custom');
+                            setCustomText(drillText);
+                            setTimeout(() => {
+                                handleRestart();
+                            }, 50);
+                        }
+                    };
+
+                    return (
+                        <div className="mb-8 w-full max-w-4xl mx-auto bg-gradient-to-r from-indigo-500/10 to-purple-500/10 backdrop-blur-md rounded-3xl p-6 border border-indigo-500/20 shadow-xl flex flex-col md:flex-row gap-6 items-center md:items-start animate-in fade-in slide-in-from-bottom-4">
+                            <img src={jennyReal} alt="Jenny AI" className="w-16 h-16 rounded-full border-2 border-indigo-500 object-cover shadow-lg" />
+                            <div className="flex-1 space-y-4 text-center md:text-left">
+                                <div className="space-y-1">
+                                    <h4 className="font-extrabold text-indigo-950 dark:text-indigo-400">Jenny's Coaching Feedback</h4>
+                                    <p className="text-slate-700 dark:text-slate-300 font-medium italic">"{coachingMsg}"</p>
+                                </div>
+
+                                {weakFingers.length > 0 && (
+                                    <div className="text-sm">
+                                        <span className="font-bold text-slate-500 mr-2">Weak Fingers Detected:</span>
+                                        <span className="inline-flex gap-2">
+                                            {weakFingers.map(([finger, count]) => (
+                                                <span key={finger} className="bg-rose-100 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold uppercase">
+                                                    {finger} ({count} errors)
+                                                </span>
+                                            ))}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {drillWords.length > 0 && (
+                                    <div className="space-y-2">
+                                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Recommended Drill Words</span>
+                                        <div className="flex flex-wrap justify-center md:justify-start gap-1.5">
+                                            {drillWords.map((word, idx) => (
+                                                <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-md text-xs font-semibold">
+                                                    {word}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {drillWords.length > 0 && (
+                                <button
+                                    onClick={handleStartDrill}
+                                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg whitespace-nowrap self-stretch md:self-center"
+                                >
+                                    🎯 Start Weak Keys Drill
+                                </button>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Feature 15: Post-Test Heatmap */}
                 {isFinished && !failedSuddenDeath && !failedAccuracy && !failedBossFight && (

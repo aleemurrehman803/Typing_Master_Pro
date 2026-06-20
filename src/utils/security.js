@@ -1,6 +1,17 @@
 import CryptoJS from 'crypto-js';
+import { getDeviceKey } from './deviceKey';
 
-const STORAGE_SECRET = 'tm-pro-secure-v1-alpha';
+const getStorageSecret = () => {
+    return getDeviceKey();
+};
+
+let activeSecret = getStorageSecret();
+
+export const setDynamicSecret = (secret) => {
+    activeSecret = secret;
+};
+
+const LEGACY_STORAGE_SECRET = 'tm-pro-secure-v1-alpha';
 
 /**
  * FEATURE 10: Encrypted Local Storage
@@ -9,7 +20,7 @@ const STORAGE_SECRET = 'tm-pro-secure-v1-alpha';
 export const secureStorage = {
     set: (key, value) => {
         try {
-            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(value), STORAGE_SECRET).toString();
+            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(value), activeSecret).toString();
             localStorage.setItem(`tm_secure_${key}`, encrypted);
         } catch (e) {
             console.error('SECURE_STORAGE_ERROR:', e);
@@ -19,9 +30,33 @@ export const secureStorage = {
         try {
             const encrypted = localStorage.getItem(`tm_secure_${key}`);
             if (!encrypted) return null;
-            const bytes = CryptoJS.AES.decrypt(encrypted, STORAGE_SECRET);
-            return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-        } catch (e) {
+
+            // Try activeSecret decryption
+            let decrypted = null;
+            try {
+                const bytes = CryptoJS.AES.decrypt(encrypted, activeSecret);
+                decrypted = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+            } catch {
+                // Ignore and fallback
+            }
+
+            // Fallback decryption using legacy key
+            if (decrypted === null && activeSecret !== LEGACY_STORAGE_SECRET) {
+                try {
+                    const bytes = CryptoJS.AES.decrypt(encrypted, LEGACY_STORAGE_SECRET);
+                    decrypted = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                    if (decrypted !== null) {
+                        // Migrate legacy to new dynamic storage key
+                        console.info(`Migrating tm_secure_${key} to dynamic storage secret...`);
+                        secureStorage.set(key, decrypted);
+                    }
+                } catch {
+                    // Ignored
+                }
+            }
+
+            return decrypted;
+        } catch {
             console.warn('SECURE_STORAGE_CORRUPTED');
             return null;
         }
@@ -102,7 +137,7 @@ export const generateScoreManifest = async (stats, keystrokes) => {
     const manifestString = JSON.stringify(manifest);
 
     // Simple HMAC-like signature for demo; in high-pro we'd use SubtleCrypto RSA
-    const signature = CryptoJS.HmacSHA256(manifestString, STORAGE_SECRET).toString();
+    const signature = CryptoJS.HmacSHA256(manifestString, activeSecret).toString();
 
     return {
         ...manifest,

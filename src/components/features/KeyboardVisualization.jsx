@@ -1,10 +1,14 @@
 import React from 'react';
+import useSettingsStore from '../../store/useSettingsStore';
 
 /**
  * KeyboardVisualization Component
  * Shows visual keyboard with finger position hints and current key highlight.
  */
 const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
+    const { keyboardLayout } = useSettingsStore();
+    const layout = keyboardLayout || 'qwerty';
+
     // Finger color mapping
     const fingerColors = {
         'left-pinky': 'bg-rose-400 dark:bg-rose-600',
@@ -18,23 +22,66 @@ const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
         'thumbs': 'bg-slate-400 dark:bg-slate-600'
     };
 
-    // Key to finger mapping
-    const keyFingerMap = {
-        // Numbers
-        '1': 'left-pinky', '2': 'left-ring', '3': 'left-middle', '4': 'left-index', '5': 'left-index',
-        '6': 'right-index', '7': 'right-index', '8': 'right-middle', '9': 'right-ring', '0': 'right-pinky',
-        // Top row
-        'q': 'left-pinky', 'w': 'left-ring', 'e': 'left-middle', 'r': 'left-index', 't': 'left-index',
-        'y': 'right-index', 'u': 'right-index', 'i': 'right-middle', 'o': 'right-ring', 'p': 'right-pinky',
-        // Home row
-        'a': 'left-pinky', 's': 'left-ring', 'd': 'left-middle', 'f': 'left-index',
-        'j': 'right-index', 'k': 'right-middle', 'l': 'right-ring', ';': 'right-pinky',
-        // Bottom row
-        'z': 'left-pinky', 'x': 'left-ring', 'c': 'left-middle', 'v': 'left-index', 'b': 'left-index',
-        'n': 'right-index', 'm': 'right-index', ',': 'right-middle', '.': 'right-ring', '/': 'right-pinky',
-        // Space
-        ' ': 'thumbs'
+    // Key rows config per layout
+    const layoutRows = {
+        qwerty: {
+            numbers: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            top: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            home: ['a', 's', 'd', 'f', 'j', 'k', 'l', ';'],
+            bottom: ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
+        },
+        dvorak: {
+            numbers: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            top: ['\'', ',', '.', 'p', 'y', 'f', 'g', 'c', 'r', 'l'],
+            home: ['a', 'o', 'e', 'u', 'i', 'd', 'h', 't', 'n', 's'],
+            bottom: [';', 'q', 'j', 'k', 'x', 'b', 'm', 'w', 'v', 'z']
+        },
+        colemak: {
+            numbers: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            top: ['q', 'w', 'f', 'p', 'g', 'j', 'l', 'u', 'y', ';'],
+            home: ['a', 'r', 's', 't', 'd', 'h', 'n', 'e', 'i', 'o'],
+            bottom: ['z', 'x', 'c', 'v', 'b', 'k', 'm', ',', '.', '/']
+        }
     };
+
+    const keyFingerMaps = {
+        qwerty: {
+            '1': 'left-pinky', '2': 'left-ring', '3': 'left-middle', '4': 'left-index', '5': 'left-index',
+            '6': 'right-index', '7': 'right-index', '8': 'right-middle', '9': 'right-ring', '0': 'right-pinky',
+            'q': 'left-pinky', 'w': 'left-ring', 'e': 'left-middle', 'r': 'left-index', 't': 'left-index',
+            'y': 'right-index', 'u': 'right-index', 'i': 'right-middle', 'o': 'right-ring', 'p': 'right-pinky',
+            'a': 'left-pinky', 's': 'left-ring', 'd': 'left-middle', 'f': 'left-index',
+            'j': 'right-index', 'k': 'right-middle', 'l': 'right-ring', ';': 'right-pinky',
+            'z': 'left-pinky', 'x': 'left-ring', 'c': 'left-middle', 'v': 'left-index', 'b': 'left-index',
+            'n': 'right-index', 'm': 'right-index', ',': 'right-middle', '.': 'right-ring', '/': 'right-pinky',
+            ' ': 'thumbs'
+        },
+        dvorak: {
+            '1': 'left-pinky', '2': 'left-ring', '3': 'left-middle', '4': 'left-index', '5': 'left-index',
+            '6': 'right-index', '7': 'right-index', '8': 'right-middle', '9': 'right-ring', '0': 'right-pinky',
+            '\'': 'left-pinky', ',': 'left-ring', '.': 'left-middle', 'p': 'left-index', 'y': 'left-index',
+            'f': 'right-index', 'g': 'right-index', 'c': 'right-middle', 'r': 'right-ring', 'l': 'right-pinky',
+            'a': 'left-pinky', 'o': 'left-ring', 'e': 'left-middle', 'u': 'left-index', 'i': 'left-index',
+            'd': 'right-index', 'h': 'right-index', 't': 'right-middle', 'n': 'right-ring', 's': 'right-pinky',
+            ';': 'left-pinky', 'q': 'left-ring', 'j': 'left-middle', 'k': 'left-index', 'x': 'left-index',
+            'b': 'right-index', 'm': 'right-index', 'w': 'right-middle', 'v': 'right-ring', 'z': 'right-pinky',
+            ' ': 'thumbs'
+        },
+        colemak: {
+            '1': 'left-pinky', '2': 'left-ring', '3': 'left-middle', '4': 'left-index', '5': 'left-index',
+            '6': 'right-index', '7': 'right-index', '8': 'right-middle', '9': 'right-ring', '0': 'right-pinky',
+            'q': 'left-pinky', 'w': 'left-ring', 'f': 'left-middle', 'p': 'left-index', 'g': 'left-index',
+            'j': 'right-index', 'l': 'right-index', 'u': 'right-middle', 'y': 'right-ring', ';': 'right-pinky',
+            'a': 'left-pinky', 'r': 'left-ring', 's': 'left-middle', 't': 'left-index', 'd': 'left-index',
+            'h': 'right-index', 'n': 'right-index', 'e': 'right-middle', 'i': 'right-ring', 'o': 'right-pinky',
+            'z': 'left-pinky', 'x': 'left-ring', 'c': 'left-middle', 'v': 'left-index', 'b': 'left-index',
+            'k': 'right-index', 'm': 'right-index', ',': 'right-middle', '.': 'right-ring', '/': 'right-pinky',
+            ' ': 'thumbs'
+        }
+    };
+
+    const currentRows = layoutRows[layout] || layoutRows.qwerty;
+    const keyFingerMap = keyFingerMaps[layout] || keyFingerMaps.qwerty;
 
     const getCurrentFinger = () => {
         if (!currentChar) return null;
@@ -85,20 +132,25 @@ const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-800">
-            <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-6 text-center tracking-widest uppercase">
-                {heatMapData ? 'Performance Finger Heatmap' : 'Device Layout Guide'}
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-widest uppercase">
+                    {heatMapData ? 'Performance Finger Heatmap' : 'Device Layout Guide'}
+                </h3>
+                <span className="text-xs font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded uppercase">
+                    Layout: {layout}
+                </span>
+            </div>
 
             {/* Number Row */}
             <div className="flex gap-1 mb-1 justify-center">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(char =>
+                {currentRows.numbers.map(char =>
                     renderKey(char, keyFingerMap[char])
                 )}
             </div>
 
             {/* Top Row */}
             <div className="flex gap-1 mb-1 justify-center">
-                {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(char =>
+                {currentRows.top.map(char =>
                     renderKey(char, keyFingerMap[char])
                 )}
             </div>
@@ -106,7 +158,7 @@ const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
             {/* Home Row */}
             <div className="flex gap-1 mb-1 justify-center">
                 <div className="w-6"></div>
-                {['a', 's', 'd', 'f', 'j', 'k', 'l', ';'].map(char =>
+                {currentRows.home.map(char =>
                     renderKey(char, keyFingerMap[char])
                 )}
             </div>
@@ -114,7 +166,7 @@ const KeyboardVisualization = ({ currentChar, heatMapData = null }) => {
             {/* Bottom Row */}
             <div className="flex gap-1 mb-1 justify-center">
                 <div className="w-12"></div>
-                {['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'].map(char =>
+                {currentRows.bottom.map(char =>
                     renderKey(char, keyFingerMap[char])
                 )}
             </div>

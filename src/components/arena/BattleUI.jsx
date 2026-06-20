@@ -33,6 +33,7 @@ const BattleUI = () => {
     const [xpGained, setXpGained] = useState(0);
     const [leveledUp, setLeveledUp] = useState(false);
     const [newRank, setNewRank] = useState(null);
+    const [suddenDeathChoked, setSuddenDeathChoked] = useState(false);
 
     // Opponent State
     const [opponentProgress, setOpponentProgress] = useState(0);
@@ -95,19 +96,37 @@ const BattleUI = () => {
         }
     }, [battleState, timeLeft]);
 
+    const aiPersonality = arenaConfig.personality || 'standard';
+
     // Opponent AI Progress
     useEffect(() => {
         if (battleState === 'active') {
             const interval = setInterval(() => {
                 setOpponentProgress(prev => {
-                    const increment = (targetOpponentWpm / 60) * (totalChars / 100);
-                    return Math.min(prev + increment + (Math.random() * 0.5), 100);
+                    let multiplier = 1;
+                    if (aiPersonality === 'rusher') {
+                        // Rusher starts fast, chokes/slows down in the second half
+                        multiplier = prev < 55 ? 1.45 : 0.55;
+                    } else if (aiPersonality === 'sniper') {
+                        // Sniper is slow and steady
+                        multiplier = 0.85;
+                    } else if (aiPersonality === 'choke') {
+                        // Choke starts fast, but freezes near completion
+                        if (prev >= 90 && prev < 98) {
+                            multiplier = 0.08; // crawl
+                        } else {
+                            multiplier = 1.3;
+                        }
+                    }
+
+                    const increment = (targetOpponentWpm / 60) * (totalChars / 100) * multiplier;
+                    return Math.min(prev + increment + (Math.random() * 0.4), 100);
                 });
                 setOpponentWpm(targetOpponentWpm + Math.floor(Math.random() * 6 - 3));
             }, 1000);
             return () => clearInterval(interval);
         }
-    }, [battleState, targetOpponentWpm, totalChars]);
+    }, [battleState, targetOpponentWpm, totalChars, aiPersonality]);
 
     // Player Stats & Commentary
     useEffect(() => {
@@ -155,9 +174,47 @@ const BattleUI = () => {
         }
     };
 
+    const triggerSuddenDeathFail = () => {
+        setSuddenDeathChoked(true);
+        setBattleState('finished');
+        setAccuracy(0);
+        soundManager.playError();
+        
+        let coinsChange = 0;
+        if (battleMode === 'competitive' || battleMode === 'pro') {
+            coinsChange = -betAmount;
+        } else {
+            coinsChange = -5;
+        }
+
+        const xp = 0;
+        setXpGained(xp);
+
+        // Save progress to database / local profile
+        saveArenaProgress(xp, coinsChange);
+
+        const stats = JSON.parse(localStorage.getItem('arena_practice_stats') || '{"wins": 0, "losses": 0, "bestWpm": 0}');
+        stats.losses = stats.losses + 1;
+        localStorage.setItem('arena_practice_stats', JSON.stringify(stats));
+
+        window.dispatchEvent(new Event('arena-coins-updated'));
+
+        setCommentary("💥 SUDDEN DEATH FAIL! One typo ended the match!");
+    };
+
     const handleInputChange = (e) => {
         if (battleState !== 'active') return;
         const value = e.target.value;
+
+        // Sudden Death Check
+        if (arenaConfig.suddenDeath && value.length > 0) {
+            const expectedSubstring = battleText.substring(0, value.length);
+            if (value !== expectedSubstring) {
+                setUserInput(value);
+                triggerSuddenDeathFail();
+                return;
+            }
+        }
 
         // Strict Mode: If the new character makes the current word incorrect, we allows it but mark it red in UI
         setUserInput(value);
@@ -180,6 +237,10 @@ const BattleUI = () => {
         } else if (value.endsWith(' ') && currentTypedWord !== currentWord) {
             // Mistake made on word completion
             soundManager.playError();
+            if (arenaConfig.suddenDeath) {
+                triggerSuddenDeathFail();
+                return;
+            }
             setCombo(0);
             setCommentary("Missed it! Keep moving!");
             // JUICE: Red particles for mistakes!
@@ -510,10 +571,13 @@ const BattleUI = () => {
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <Target className="w-24 h-24 text-slate-500 mx-auto" />
-                                        <h2 className="text-6xl font-black italic tracking-tighter text-slate-500">
-                                            DEFEAT
+                                        <Target className="w-24 h-24 text-rose-500 mx-auto" />
+                                        <h2 className="text-6xl font-black italic tracking-tighter text-rose-500">
+                                            {suddenDeathChoked ? 'SUDDEN DEATH!' : 'DEFEAT'}
                                         </h2>
+                                        {suddenDeathChoked && (
+                                            <p className="text-rose-400 font-bold text-sm tracking-wide mt-2">One mistake ended your run.</p>
+                                        )}
                                     </div>
                                 )}
                                 <p className="text-slate-500 mt-2 font-bold uppercase tracking-widest text-xs">Battle Outcome Verified</p>

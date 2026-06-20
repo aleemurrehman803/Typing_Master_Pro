@@ -145,6 +145,27 @@ export const CODE_SNIPPETS = {
         { id: 'html1', title: 'Basic Structure', text: "<!DOCTYPE html>\n<html>\n<head>\n  <title>Page Title</title>\n</head>\n<body>\n  <h1>My First Heading</h1>\n  <p>My first paragraph.</p>\n</body>\n</html>" },
         { id: 'html2', title: 'Form Element', text: "<form action='/submit' method='post'>\n  <label for='name'>Name:</label>\n  <input type='text' id='name' name='name'>\n  <input type='submit' value='Submit'>\n</form>" },
         { id: 'html3', title: 'Unordered List', text: "<ul>\n  <li>Coffee</li>\n  <li>Tea</li>\n  <li>Milk</li>\n</ul>" }
+    ],
+    rust: [
+        { id: 'rs1', title: 'Ownership', text: `fn main() {\n    let s = String::from("hello");\n    let len = calculate_length(&s);\n    println!("Length of '{}' is {}.", s, len);\n}` },
+        { id: 'rs2', title: 'Pattern Match', text: `match direction {\n    Direction::North => println!("Going north!"),\n    Direction::South => println!("Going south!"),\n    _ => println!("Going elsewhere!"),\n}` },
+        { id: 'rs3', title: 'Struct Impl', text: `struct Rectangle {\n    width: u32,\n    height: u32,\n}\nimpl Rectangle {\n    fn area(&self) -> u32 {\n        self.width * self.height\n    }\n}` },
+        { id: 'rs4', title: 'Error Handling', text: `fn read_file(path: &str) -> Result<String, io::Error> {\n    let mut s = String::new();\n    File::open(path)?.read_to_string(&mut s)?;\n    Ok(s)\n}` },
+        { id: 'rs5', title: 'Iterator', text: `let sum: i32 = (1..=10)\n    .filter(|x| x % 2 == 0)\n    .map(|x| x * x)\n    .sum();` }
+    ],
+    go: [
+        { id: 'go1', title: 'Goroutine', text: `func main() {\n    go func() {\n        fmt.Println("running in goroutine")\n    }()\n    time.Sleep(1 * time.Second)\n}` },
+        { id: 'go2', title: 'Interface', text: `type Animal interface {\n    Sound() string\n}\ntype Dog struct{}\nfunc (d Dog) Sound() string {\n    return "Woof"\n}` },
+        { id: 'go3', title: 'Error Check', text: `file, err := os.Open("test.txt")\nif err != nil {\n    log.Fatalf("failed to open: %s", err)\n}\ndefer file.Close()` },
+        { id: 'go4', title: 'Channel', text: `ch := make(chan int)\ngo func() {\n    ch <- 42\n}()\nvalue := <-ch\nfmt.Println(value)` },
+        { id: 'go5', title: 'Struct', text: `type Person struct {\n    Name string\n    Age  int\n}\np := Person{Name: "Alice", Age: 30}\nfmt.Printf("%s is %d years old\\n", p.Name, p.Age)` }
+    ],
+    typescript: [
+        { id: 'ts1', title: 'Generic Function', text: `function identity<T>(arg: T): T {\n    return arg;\n}\nconst output = identity<string>("hello");` },
+        { id: 'ts2', title: 'Interface', text: `interface User {\n    id: number;\n    name: string;\n    email?: string;\n}\nconst user: User = { id: 1, name: "Alice" };` },
+        { id: 'ts3', title: 'Enum', text: `enum Direction {\n    Up = "UP",\n    Down = "DOWN",\n    Left = "LEFT",\n    Right = "RIGHT"\n}\nconst dir: Direction = Direction.Up;` },
+        { id: 'ts4', title: 'Type Guard', text: `function isString(value: unknown): value is string {\n    return typeof value === "string";\n}\nif (isString(input)) {\n    console.log(input.toUpperCase());\n}` },
+        { id: 'ts5', title: 'Async/Await', text: `async function fetchUser(id: number): Promise<User> {\n    const res = await fetch(\`/api/users/\${id}\`);\n    if (!res.ok) throw new Error("Not found");\n    return res.json() as Promise<User>;\n}` }
     ]
 };
 
@@ -316,4 +337,11 @@ export const getRandomAIQuestion = (difficulty) => {
         ? AI_TYPING_QUESTIONS.filter(q => q.difficulty === difficulty)
         : AI_TYPING_QUESTIONS;
     return questions[Math.floor(Math.random() * questions.length)];
+};
+
+export const getCodeSnippet = (language) => {
+    const available = ['javascript', 'python', 'html', 'rust', 'go', 'typescript'];
+    const lang = available.includes(language) ? language : 'javascript';
+    const snippets = CODE_SNIPPETS[lang];
+    return snippets[Math.floor(Math.random() * snippets.length)];
 };
