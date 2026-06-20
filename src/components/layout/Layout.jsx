@@ -1,3 +1,4 @@
+// Layout wrapper component for TypeMaster Pro
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
