@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
 import { useEffect, Suspense, lazy } from 'react';
 import Layout from './components/layout/Layout';
@@ -99,7 +99,7 @@ function App() {
   return (
     <ErrorBoundary>
       <SecurityHeaders />
-      <Router basename={import.meta.env.BASE_URL}>
+      <Router>
         <PageTracker />
         <Suspense fallback={<PageLoader />}>
           <Routes>
