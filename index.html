@@ -61,8 +61,10 @@
           return r;
         }, {});
         if (decoded.p !== undefined) {
+          var base = l.pathname.endsWith('/') ? l.pathname : l.pathname + '/';
+          var route = decoded.p.startsWith('/') ? decoded.p.slice(1) : decoded.p;
           window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + (decoded.p || '') +
+            base + route +
             (decoded.q ? ('?' + decoded.q) : '') +
             l.hash
           );
