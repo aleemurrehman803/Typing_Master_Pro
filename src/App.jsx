@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import DeviceRestriction from './components/security/DeviceRestriction';
 import SecurityHeaders from './components/SecurityHeaders';
+import { analytics } from './utils/analytics';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -60,6 +61,17 @@ const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
 };
 
+// Page Tracker for route tracking
+const PageTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    analytics.trackPageView(location.pathname + location.search);
+  }, [location]);
+
+  return null;
+};
+
 function App() {
   const { initAuth, user } = useAuthStore();
 
@@ -88,6 +100,7 @@ function App() {
     <ErrorBoundary>
       <SecurityHeaders />
       <Router basename={import.meta.env.BASE_URL}>
+        <PageTracker />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public Routes */}

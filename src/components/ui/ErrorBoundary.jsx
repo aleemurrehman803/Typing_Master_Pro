@@ -1,4 +1,5 @@
 import React from 'react';
+import { analytics } from '../../utils/analytics';
 
 /**
  * Error Boundary Component
@@ -24,8 +25,10 @@ class ErrorBoundary extends React.Component {
             errorInfo: errorInfo
         });
 
-        // Here you can send error logs to an error reporting service
-        // e.g., Sentry, LogRocket, etc.
+        // Track the crash event
+        analytics.trackError(error, {
+            componentStack: errorInfo?.componentStack || ''
+        });
     }
 
     handleReset = () => {
