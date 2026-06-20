@@ -57,6 +57,16 @@ const PRESET_PARAGRAPHS = {
 };
 
 const Test = () => {
+    const { user, addAchievement, updateStats, updateLessonProgress, currentLevel } = useAuthStore();
+    const { 
+        caretStyle, setCaretStyle, 
+        language, setLanguage, 
+        soundProfile, setSoundProfile, 
+        visualTheme, setVisualTheme,
+        keyboardLayout, setKeyboardLayout,
+        emulateLayout, setEmulateLayout
+    } = useSettingsStore();
+
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -112,16 +122,6 @@ const Test = () => {
 
     // 🎯 Level 2: Speed Challenge State
     const [speedTarget, setSpeedTarget] = useState(null);
-
-    const { user, addAchievement, updateStats, updateLessonProgress, currentLevel } = useAuthStore();
-    const { 
-        caretStyle, setCaretStyle, 
-        language, setLanguage, 
-        soundProfile, setSoundProfile, 
-        visualTheme, setVisualTheme,
-        keyboardLayout, setKeyboardLayout,
-        emulateLayout, setEmulateLayout
-    } = useSettingsStore();
 
     // Feature 38: Initialize Sound Engine
     useEffect(() => {
