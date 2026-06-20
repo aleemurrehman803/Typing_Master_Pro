@@ -8,13 +8,14 @@ import {
     X, Save, Bell, Volume2, Moon, Globe, Edit2,
     Upload, Trash2, AlertCircle, FileText, Search, Phone, MapPin,
     Lock, LogOut, Briefcase, User2, Mail, Hash, Heart,
-    Key, Terminal, Copy, Plus, Link2
+    Key, Terminal, Copy, Plus, Link2, CreditCard
 } from 'lucide-react';
 import { BADGES } from '../utils/achievements';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { compressImage } from '../utils/imageUtils';
 import ProfileProgressIndicator from '../components/features/ProfileProgressIndicator';
 import SEOHead from '../components/SEOHead';
+import { billingService, SUBSCRIPTION_PLANS } from '../services/billing.service';
 
 const StatCard = ({ icon, label, value, unit, color, progress }) => {
     const colorClasses = {
@@ -709,6 +710,72 @@ const PerformanceChart = React.memo(({ data }) => (
 ));
 PerformanceChart.displayName = 'PerformanceChart';
 
+const MembershipPlansView = ({ currentTier, onUpgrade }) => {
+    return (
+        <div className="space-y-8">
+            <div className="bg-gradient-to-r from-indigo-900 to-purple-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden border border-indigo-500/20">
+                <div className="relative z-10">
+                    <h3 className="text-2xl font-black mb-2">Member Account Center</h3>
+                    <p className="text-indigo-200 text-sm">Review your active typing membership and explore professional options.</p>
+                    <div className="mt-6 inline-flex items-center gap-3 px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md border border-white/15">
+                        <span className="text-xs text-indigo-200 uppercase tracking-widest font-black">Active Tier</span>
+                        <span className="px-3 py-0.5 rounded-full text-xs font-black bg-indigo-500 text-white uppercase border border-indigo-400">
+                            {currentTier === 'free' ? 'Standard Guest' : currentTier === 'pro' ? 'Pro Typist' : 'Enterprise Team'}
+                        </span>
+                    </div>
+                </div>
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+                {Object.values(SUBSCRIPTION_PLANS).map((plan) => {
+                    const isActive = currentTier === plan.id;
+                    return (
+                        <div key={plan.id} className={`bg-white dark:bg-slate-800 rounded-3xl p-6 border flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${isActive ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-xl' : 'border-slate-200 dark:border-slate-700 shadow-sm'}`}>
+                            <div>
+                                <div className="flex justify-between items-start mb-4">
+                                    <h4 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wide">{plan.name}</h4>
+                                    {isActive && (
+                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 uppercase">
+                                            Active Plan
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{plan.description}</p>
+                                <div className="mb-6 flex items-baseline gap-1">
+                                    <span className="text-4xl font-black text-slate-900 dark:text-white">{plan.price}</span>
+                                    <span className="text-sm text-slate-400 font-medium">/ {plan.billing}</span>
+                                </div>
+                                <ul className="space-y-3 mb-8 border-t border-slate-100 dark:border-slate-700/50 pt-6">
+                                    {plan.features.map((feature, idx) => (
+                                        <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                                            <span className="text-green-500 font-bold">✓</span>
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {!isActive ? (
+                                <button
+                                    onClick={() => onUpgrade(plan)}
+                                    className={`w-full py-3.5 rounded-2xl font-bold transition-all ${plan.id === 'free' ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-650 text-slate-700 dark:text-white' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg'}`}
+                                >
+                                    {plan.id === 'enterprise' ? 'Contact Sales' : 'Upgrade to ' + plan.name}
+                                </button>
+                            ) : (
+                                <button disabled className="w-full py-3.5 rounded-2xl font-bold bg-slate-105 dark:bg-slate-705 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-202/50 dark:border-slate-655">
+                                    Current Tier
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const Profile = () => {
     const { user, currentLevel, updateProfile, updateSettings, logout, linkOAuth, linkPhone, linkEmailPassword } = useAuthStore();
     const navigate = useNavigate();
@@ -724,6 +791,51 @@ const Profile = () => {
         'write:scores': false,
         'read:history': true,
     });
+
+    // Billing & Subscriptions State
+    const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [checkoutError, setCheckoutError] = useState('');
+    const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+    const [transactionId, setTransactionId] = useState('');
+    const [paymentDetails, setPaymentDetails] = useState({
+        cardName: '',
+        cardNumber: '',
+        cardExpiry: '',
+        cardCvc: ''
+    });
+
+    const handleOpenCheckout = (plan) => {
+        setSelectedPlan(plan);
+        setIsCheckoutModalOpen(true);
+        setCheckoutError('');
+        setCheckoutSuccess(false);
+        setTransactionId('');
+        setPaymentDetails({ cardName: '', cardNumber: '', cardExpiry: '', cardCvc: '' });
+    };
+
+    const handleCloseCheckout = () => {
+        setIsCheckoutModalOpen(false);
+        setSelectedPlan(null);
+    };
+
+    const handleUpgradeSubmit = async (e) => {
+        e.preventDefault();
+        setCheckoutLoading(true);
+        setCheckoutError('');
+
+        const res = await billingService.simulateStripeCheckout(user.id, selectedPlan.id, paymentDetails);
+        setCheckoutLoading(false);
+
+        if (res.success) {
+            setCheckoutSuccess(true);
+            setTransactionId(res.transactionId);
+            showNotification(`Successfully upgraded to ${selectedPlan.name}!`);
+        } else {
+            setCheckoutError(res.error || 'Payment failed.');
+        }
+    };
 
     const handleGenerateKey = (e) => {
         e.preventDefault();
@@ -1111,6 +1223,7 @@ const Profile = () => {
                     {[
                         { id: 'overview', label: 'Overview', icon: BarChart3 },
                         { id: 'detailed', label: 'My Details', icon: User2 },
+                        { id: 'membership', label: 'Membership', icon: CreditCard },
                         { id: 'security', label: 'Linked Accounts', icon: Link2 },
                         { id: 'statistics', label: 'Statistics', icon: TrendingUp },
                         { id: 'achievements', label: 'Achievements', icon: Trophy },
@@ -1326,6 +1439,12 @@ const Profile = () => {
                         showNotification={showNotification}
                     />
                 )}
+                {activeTab === 'membership' && (
+                    <MembershipPlansView
+                        currentTier={user?.membership?.tier || 'free'}
+                        onUpgrade={handleOpenCheckout}
+                    />
+                )}
             </div>
 
             {isEditModalOpen && (
@@ -1482,20 +1601,20 @@ const Profile = () => {
 
             {isSettingsModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Profile Settings</h2>
-                            <button onClick={() => setIsSettingsModalOpen(false)} className="text-slate-400 p-1"><X className="w-6 h-6" /></button>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Settings</h2>
+                            <button onClick={() => setIsSettingsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
                                 <div className="flex items-center gap-3">
-                                    <Moon className="w-5 h-5 text-indigo-600" />
+                                    <Moon className="w-5 h-5 text-indigo-500" />
                                     <div><p className="font-bold text-sm">Dark Mode</p></div>
                                 </div>
-                                <input type="checkbox" checked={user.settings?.theme === 'dark'} onChange={() => changeTheme(user.settings?.theme === 'dark' ? 'light' : 'dark')} />
+                                <input type="checkbox" checked={user.settings?.theme === 'dark'} onChange={toggleTheme} />
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
                                 <div className="flex items-center gap-3">
                                     <Volume2 className="w-5 h-5 text-green-600" />
                                     <div><p className="font-bold text-sm">Sound</p></div>
@@ -1504,6 +1623,151 @@ const Profile = () => {
                             </div>
                             <button onClick={() => setIsSettingsModalOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold">Close</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCheckoutModalOpen && selectedPlan && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-150 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-2.5">
+                                <CreditCard className="w-6 h-6 text-indigo-600" />
+                                <h3 className="text-2xl font-black text-slate-800 dark:text-white">Stripe Checkout</h3>
+                            </div>
+                            <button
+                                onClick={handleCloseCheckout}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {!checkoutSuccess ? (
+                            <form onSubmit={handleUpgradeSubmit} className="space-y-5">
+                                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800">
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest font-black mb-1">Purchasing Subscription</p>
+                                    <p className="font-bold text-slate-800 dark:text-slate-200">{selectedPlan.name}</p>
+                                    <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{selectedPlan.price} <span className="text-xs text-slate-400 font-medium">/ {selectedPlan.billing}</span></p>
+                                </div>
+
+                                {checkoutError && (
+                                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-red-700 dark:text-red-400 font-medium">{checkoutError}</p>
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2" htmlFor="checkout-name">Cardholder Name</label>
+                                        <input
+                                            type="text"
+                                            id="checkout-name"
+                                            required
+                                            value={paymentDetails.cardName}
+                                            onChange={(e) => setPaymentDetails({ ...paymentDetails, cardName: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
+                                            placeholder="e.g. Jane Doe"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2" htmlFor="checkout-card">Card Number</label>
+                                        <input
+                                            type="text"
+                                            id="checkout-card"
+                                            required
+                                            maxLength="19"
+                                            value={paymentDetails.cardNumber}
+                                            onChange={(e) => {
+                                                let val = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+                                                let matches = val.match(/\d{1,4}/g);
+                                                let formatted = matches ? matches.join(' ') : '';
+                                                setPaymentDetails({ ...paymentDetails, cardNumber: formatted });
+                                            }}
+                                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
+                                            placeholder="4242 4242 4242 4242"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2" htmlFor="checkout-expiry">Expiry Date</label>
+                                            <input
+                                                type="text"
+                                                id="checkout-expiry"
+                                                required
+                                                maxLength="5"
+                                                value={paymentDetails.cardExpiry}
+                                                onChange={(e) => {
+                                                    let val = e.target.value.replace(/\D/g, '');
+                                                    if (val.length > 2) {
+                                                        val = val.substring(0, 2) + '/' + val.substring(2, 4);
+                                                    }
+                                                    setPaymentDetails({ ...paymentDetails, cardExpiry: val });
+                                                }}
+                                                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
+                                                placeholder="MM/YY"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2" htmlFor="checkout-cvc">CVC</label>
+                                            <input
+                                                type="text"
+                                                id="checkout-cvc"
+                                                required
+                                                maxLength="4"
+                                                value={paymentDetails.cardCvc}
+                                                onChange={(e) => {
+                                                    let val = e.target.value.replace(/\D/g, '');
+                                                    setPaymentDetails({ ...paymentDetails, cardCvc: val });
+                                                }}
+                                                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
+                                                placeholder="123"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={checkoutLoading}
+                                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white rounded-2xl font-bold transition-all shadow-xl flex items-center justify-center gap-2 mt-4"
+                                >
+                                    {checkoutLoading ? (
+                                        <>
+                                            <Loader className="w-5 h-5 animate-spin" /> Processing Payment...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Pay {selectedPlan.price} Securely
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        ) : (
+                            <div className="text-center py-6 space-y-6">
+                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                    <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-2xl font-black text-slate-800 dark:text-white">Payment Successful!</h4>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Thank you for subscribing. Your account is now upgraded.</p>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800 text-left space-y-2">
+                                    <p className="text-xs text-slate-400 font-medium">TRANSACTION SUMMARY</p>
+                                    <p className="text-xs text-slate-650 dark:text-slate-350"><span className="font-semibold text-slate-800 dark:text-slate-200">Plan:</span> {selectedPlan.name}</p>
+                                    <p className="text-xs text-slate-650 dark:text-slate-350"><span className="font-semibold text-slate-800 dark:text-slate-200">ID:</span> <code className="bg-slate-200/50 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px]">{transactionId}</code></p>
+                                </div>
+                                <button
+                                    onClick={handleCloseCheckout}
+                                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold transition-colors"
+                                >
+                                    Dismiss & Return
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
