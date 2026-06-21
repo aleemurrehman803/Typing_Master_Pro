@@ -211,6 +211,8 @@ const Sparkline = ({ history }) => {
         return `${x},${y}`;
     }).join(' ');
 
+    const polygonPoints = `0,${height} ${points} ${width},${height}`;
+
     return (
         <div className="w-full flex flex-col items-center">
             <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible mt-2">
@@ -218,7 +220,15 @@ const Sparkline = ({ history }) => {
                     <filter id="sparkline-glow" x="-20%" y="-20%" width="140%" height="140%">
                         <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#06b6d4" floodOpacity="0.4"/>
                     </filter>
+                    <linearGradient id="sparkline-fill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+                    </linearGradient>
                 </defs>
+                <polygon
+                    fill="url(#sparkline-fill)"
+                    points={polygonPoints}
+                />
                 <polyline
                     fill="none"
                     stroke="url(#sparkline-gradient)"

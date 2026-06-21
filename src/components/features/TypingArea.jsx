@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { isFeatureEnabled } from '../../utils/featureFlags';
 import useSettingsStore from '../../store/useSettingsStore';
 import { useSoundEngine } from '../../hooks/useSoundEngine';
@@ -17,6 +17,7 @@ import { translateChar } from '../../utils/keyboardLayouts';
  */
 const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIndex = -1, invisibleIndex = -1 }) => {
     const inputRef = useRef(null);
+    const [isFocused, setIsFocused] = useState(true);
     const { caretStyle, keyboardLayout, emulateLayout } = useSettingsStore();
     const { playKeystroke } = useSoundEngine();
 
@@ -156,6 +157,8 @@ const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIn
                 onChange={(e) => onInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 disabled={disabled}
                 autoComplete="off"
                 autoCorrect="off"
@@ -164,6 +167,20 @@ const TypingArea = ({ text, typedText, onInput, disabled, isRTL = false, ghostIn
                 aria-label="Typing test input field. Begin typing the text presented above."
                 aria-describedby="typing-reference-text"
             />
+
+            {/* Focus Guardian Pause Overlay */}
+            {!disabled && typedText.length > 0 && !isFocused && (
+                <div 
+                    onClick={handleAreaClick}
+                    className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-md z-20 cursor-pointer transition-all duration-300 border border-white/10"
+                >
+                    <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-slate-900/90 dark:bg-slate-900/90 border border-slate-800 shadow-2xl scale-100 hover:scale-105 active:scale-95 transition-all duration-300">
+                        <span className="text-3xl animate-bounce">⚠️</span>
+                        <h3 className="text-lg font-bold text-white tracking-wide leading-none">Focus Lost</h3>
+                        <p className="text-xs text-indigo-400 font-medium animate-pulse">Click here or press Space to resume typing</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
