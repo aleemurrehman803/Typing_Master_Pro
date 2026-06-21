@@ -6,7 +6,7 @@ import {
     Search, Globe, Rocket, Swords, Sparkles, Flame, CheckCircle, Target, Timer,
     Trophy, Star, Crown, Medal, Leaf, Wallet, DollarSign, ArrowDownCircle,
     ArrowUpCircle, TrendingUp, Calendar, Gift, Users, BarChart2, PieChart,
-    Bell, Download, AlertCircle, ChevronDown, RefreshCw, RotateCcw
+    Bell, Download, AlertCircle, ChevronDown, RefreshCw, RotateCcw, Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
