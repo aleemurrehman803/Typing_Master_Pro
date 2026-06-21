@@ -30,7 +30,8 @@ import {
     Swords,
     Coins,
     Terminal,
-    ChevronRight
+    ChevronRight,
+    ChevronLeft
 } from 'lucide-react';
 import _packageJson from '../../../package.json';
 import { secureStorage as _secureStorage } from '../../utils/security';
@@ -58,6 +59,17 @@ const Layout = ({ children }) => {
     }, []);
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Desktop sidebar collapse state persisted in localStorage
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        return localStorage.getItem('tm_sidebar_collapsed') === 'true';
+    });
+
+    const toggleSidebar = () => {
+        const newState = !sidebarCollapsed;
+        setSidebarCollapsed(newState);
+        localStorage.setItem('tm_sidebar_collapsed', newState);
+    };
 
     // Feature 1: Scroll-aware State
     const [_scrolled, setScrolled] = useState(false);
@@ -335,7 +347,7 @@ const Layout = ({ children }) => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
             {/* Desktop Sidebar */}
-            <aside className="w-80 bg-slate-900 dark:bg-slate-950 text-white fixed h-full hidden md:flex flex-col z-30 shadow-2xl border-r border-transparent dark:border-slate-800 transition-colors duration-300">
+            <aside className={`w-80 bg-slate-900 dark:bg-slate-950 text-white fixed h-full hidden md:flex flex-col z-30 shadow-2xl border-r border-transparent dark:border-slate-800 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}`}>
                 {/* Logo Section */}
                 <div className="p-6 border-b border-slate-800 dark:border-slate-800/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -515,8 +527,40 @@ const Layout = ({ children }) => {
                 </nav>
             </aside>
 
+            {/* Desktop Sidebar Collapse Toggle Button */}
+            <button
+                onClick={toggleSidebar}
+                className={`fixed top-1/2 z-40 -translate-y-1/2 w-8 h-16 bg-slate-900/80 dark:bg-slate-950/80 hover:bg-indigo-600 dark:hover:bg-indigo-600 border border-slate-800 dark:border-slate-800/80 text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-300 group shadow-lg backdrop-blur-md hidden md:flex rounded-r-2xl border-l-0 ${
+                    sidebarCollapsed ? 'left-0' : 'left-[320px]'
+                }`}
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+                <div className="relative w-4 h-8 flex items-center justify-center">
+                    {/* Animated 3 Dots */}
+                    <div className={`flex flex-col gap-0.5 transition-all duration-300 ${
+                        sidebarCollapsed ? 'opacity-0 scale-50 rotate-90' : 'opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-50'
+                    }`}>
+                        <span className="w-1 h-1 rounded-full bg-current"></span>
+                        <span className="w-1 h-1 rounded-full bg-current"></span>
+                        <span className="w-1 h-1 rounded-full bg-current"></span>
+                    </div>
+                    {/* Animated Chevron Arrow */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                        sidebarCollapsed 
+                            ? 'opacity-100 scale-100 rotate-0 text-indigo-400' 
+                            : 'opacity-0 scale-50 -rotate-90 group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-0'
+                    }`}>
+                        {sidebarCollapsed ? (
+                            <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                        ) : (
+                            <ChevronLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                        )}
+                    </div>
+                </div>
+            </button>
+
             {/* Main Content Area */}
-            <main className="flex-1 md:ml-80 min-h-screen flex flex-col transition-all duration-300">
+            <main className={`flex-1 min-h-screen flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:ml-0' : 'md:ml-80'}`}>
                 {/* Ultra-Modern Enhanced Navbar */}
                 <header className="relative bg-gradient-to-r from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800 sticky top-0 z-20 transition-all duration-500 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
                     {/* Animated gradient overlay */}
