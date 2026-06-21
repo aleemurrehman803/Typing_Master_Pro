@@ -477,41 +477,6 @@ const Gamification = () => {
                         delay={0.2}
                     />
 
-                    <GameCard
-                        title="RHYTHM KEYSTROKES"
-                        subtitle="Audio Entrainment"
-                        description="Synesthetic typing challenge. Align your keystrokes with high-BPM tracks for maximum combo multipliers."
-                        tags={['Rhythm', 'Timing', 'Sync']}
-                        icon={Music}
-                        color="amber"
-                        status="LIVE"
-                        path="/game/rhythm-typer"
-                        delay={0.3}
-                    />
-
-                    <GameCard
-                        title="NEON OVERDRIVE"
-                        subtitle="Cyber Velocity"
-                        description="Acknowledge mission parameters: High-velocity data intercept. Type the approaching word protocols to prevent system breach."
-                        tags={['Speed', 'Adrenaline', 'Neon']}
-                        icon={Zap}
-                        color="cyan"
-                        status="LIVE"
-                        path="/game/neon-overdrive"
-                        delay={0.4}
-                    />
-
-                    <GameCard
-                        title="ZEN GARDEN FLOW"
-                        subtitle="Focus & Endurance"
-                        description="Embrace the silence. Maintain your focus to grow your digital sanctuary through precise, rhythmic typing."
-                        tags={['Focus', 'Mindful', 'Flow']}
-                        icon={Leaf}
-                        color="emerald"
-                        status="LIVE"
-                        path="/game/zen-garden"
-                        delay={0.5}
-                    />
 
                     <GameCard
                         title="TYPING DUELS"
@@ -522,7 +487,7 @@ const Gamification = () => {
                         color="rose"
                         status="LIVE"
                         path="/game/duels"
-                        delay={0.5}
+                        delay={0.3}
                     />
                 </div>
 
