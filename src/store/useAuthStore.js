@@ -565,6 +565,52 @@ const useAuthStore = create((set, get) => ({
     },
 
     /**
+     * Deposit Coins action
+     * Adds coins to the user's wallet
+     * @param {number} amount - Coins to add
+     * @returns {Promise<{success: boolean}>}
+     */
+    depositCoins: async (amount) => {
+        const currentCoins = parseInt(localStorage.getItem('arena_coins') || '0');
+        const newTotal = currentCoins + amount;
+        localStorage.setItem('arena_coins', newTotal.toString());
+
+        // Trigger custom event for Layout / UI elements to update
+        window.dispatchEvent(new CustomEvent('arena-coins-updated'));
+
+        const { user } = get();
+        if (user) {
+            const updatedUser = {
+                ...user,
+                arena_coins: newTotal
+            };
+
+            secureStorage.setItem('user', updatedUser);
+
+            const users = secureStorage.getItem('users') || {};
+            const normalizedEmail = user.email.toLowerCase().trim();
+            if (users[normalizedEmail]) {
+                users[normalizedEmail] = {
+                    ...users[normalizedEmail],
+                    arena_coins: newTotal
+                };
+                secureStorage.setItem('users', users);
+            }
+
+            try {
+                await DbService.updateProfile(user.id, {
+                    arena_coins: newTotal
+                });
+            } catch (err) {
+                console.warn('[AuthStore] Failed to update profile coins in DB:', err);
+            }
+
+            set({ user: updatedUser });
+        }
+        return { success: true };
+    },
+
+    /**
      * Migrate local guest progress to authenticated user
      */
     migrateGuestProgress: async (authUserId) => {

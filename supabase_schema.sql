@@ -522,6 +522,9 @@ create table public.realtime_streams (
 
 -- Enable Realtime
 alter publication supabase_realtime add table public.realtime_streams;
+alter publication supabase_realtime add table public.betting_matches;
+alter publication supabase_realtime add table public.match_participants;
+
 
 -- 17. Replay Attack & Rate Limit Validator RPC
 create or replace function public.secure_realtime_broadcast(

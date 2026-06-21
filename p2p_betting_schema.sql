@@ -178,3 +178,8 @@ begin
     );
 end;
 $$ language plpgsql security definer SET search_path = public;
+
+-- Enable Realtime Replication for P2P Matches
+alter publication supabase_realtime add table public.betting_matches;
+alter publication supabase_realtime add table public.match_participants;
+

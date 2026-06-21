@@ -39,6 +39,7 @@ import { isFeatureEnabled as _isFeatureEnabled } from '../../utils/featureFlags'
 import { getLevelBadge } from '../../utils/levelSystem';
 import CommandPalette from './CommandPalette';
 import ReferralModal from './ReferralModal';
+import { StripeDepositModal } from '../arena/StripeDepositModal';
 
 
 /**
@@ -129,6 +130,7 @@ const Layout = ({ children }) => {
     const [helpSupportOpen, setHelpSupportOpen] = useState(false);
     const [donationModalOpen, setDonationModalOpen] = useState(false);
     const [referralModalOpen, setReferralModalOpen] = useState(false);
+    const [stripeDepositOpen, setStripeDepositOpen] = useState(false);
 
 
 
@@ -191,31 +193,32 @@ const Layout = ({ children }) => {
     // Add Coin State
     const [coins, setCoins] = useState(0);
 
-    // Sync Coins from LocalStorage
+    // Sync Coins from LocalStorage & Setup stripe triggers
     useEffect(() => {
         const loadCoins = () => {
             const storedCoins = localStorage.getItem('arena_coins');
             if (storedCoins) {
                 setCoins(parseInt(storedCoins));
             } else {
-                // Initialize if not present (simulating backend wallet)
                 localStorage.setItem('arena_coins', '50');
                 setCoins(50);
             }
         };
-
         loadCoins();
 
-        // Listen for custom events or storage changes if needed
-        window.addEventListener('storage', loadCoins);
-        // Custom event for immediate updates within the same window
-        window.addEventListener('arena-coins-updated', loadCoins);
+        const handleStripeTrigger = () => {
+            setStripeDepositOpen(true);
+        };
 
+        window.addEventListener('storage', loadCoins);
+        window.addEventListener('arena-coins-updated', loadCoins);
+        window.addEventListener('trigger-stripe-deposit', handleStripeTrigger);
         return () => {
             window.removeEventListener('storage', loadCoins);
             window.removeEventListener('arena-coins-updated', loadCoins);
+            window.removeEventListener('trigger-stripe-deposit', handleStripeTrigger);
         };
-    }, [location.pathname]); // Also refresh on route change
+    }, []);
 
     // Handle outside clicks for dropdowns
     useEffect(() => {
@@ -693,7 +696,11 @@ const Layout = ({ children }) => {
 
                             {/* Coins Wallet Badge - NEW (Only visible in Arena) */}
                             {location.pathname.startsWith('/arena') && (
-                                <div className="hidden md:flex items-center gap-2.5 px-4 py-2 rounded-xl bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-yellow-900/20 dark:via-amber-900/20 dark:to-orange-900/20 border-2 border-yellow-200/60 dark:border-yellow-800/60 shadow-lg shadow-yellow-100 dark:shadow-yellow-900/20 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group">
+                                <div 
+                                    className="hidden md:flex items-center gap-2.5 px-4 py-2 rounded-xl bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-yellow-900/20 dark:via-amber-900/20 dark:to-orange-900/20 border-2 border-yellow-200/60 dark:border-yellow-800/60 shadow-lg shadow-yellow-100 dark:shadow-yellow-900/20 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group"
+                                    onClick={() => setStripeDepositOpen(true)}
+                                    title="Deposit Coins via Stripe"
+                                >
                                     <div className="p-1.5 bg-yellow-100 dark:bg-yellow-900/40 rounded-full group-hover:rotate-12 transition-transform duration-300">
                                         <Coins className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                                     </div>
@@ -1348,6 +1355,7 @@ const Layout = ({ children }) => {
             {/* Modals & Overlays */}
             <CommandPalette />
             <ReferralModal isOpen={referralModalOpen} onClose={() => setReferralModalOpen(false)} />
+            <StripeDepositModal isOpen={stripeDepositOpen} onClose={() => setStripeDepositOpen(false)} />
         </div>
     );
 };

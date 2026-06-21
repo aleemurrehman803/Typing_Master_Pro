@@ -152,7 +152,7 @@ const CountdownOverlay = ({ count }) => (
 );
 
 // ─── Race Track Component ─────────────────────────────────────────────────────
-const RaceTrack = ({ playerProgress, botProgress, playerName, botName, botEmoji }) => (
+const RaceTrack = ({ playerProgress, botProgress, playerName, botName, botEmoji, opponentWpm }) => (
     <div className="rt-root">
         <div className="rt-lane">
             <div className="rt-label">
@@ -173,7 +173,10 @@ const RaceTrack = ({ playerProgress, botProgress, playerName, botName, botEmoji 
         <div className="rt-lane">
             <div className="rt-label">
                 <span className="rt-avatar rt-bot">{botEmoji}</span>
-                <span className="rt-name">{botName}</span>
+                <span className="rt-name">
+                    {botName}
+                    {opponentWpm > 0 && <span className="rt-wpm-badge">{opponentWpm} WPM</span>}
+                </span>
             </div>
             <div className="rt-bar-bg">
                 <motion.div
@@ -197,7 +200,20 @@ const RaceTrack = ({ playerProgress, botProgress, playerName, botName, botEmoji 
             }
             .rt-you { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; }
             .rt-bot { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-            .rt-name { font-size: 13px; font-weight: 600; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .rt-name { font-size: 13px; font-weight: 600; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
+            .rt-wpm-badge {
+                font-size: 9px;
+                font-weight: 800;
+                color: #f97316;
+                background: rgba(249, 115, 22, 0.1);
+                border: 1px solid rgba(249, 115, 22, 0.3);
+                padding: 1px 5px;
+                border-radius: 4px;
+                margin-left: 6px;
+                text-transform: uppercase;
+                display: inline-block;
+                vertical-align: middle;
+            }
             .rt-bar-bg {
                 position: relative; height: 20px;
                 background: #0f172a; border-radius: 999px;
@@ -293,12 +309,18 @@ TypingInput.displayName = 'TypingInput';
 
 // ─── Biometric KYC Camera Scan Simulation Component ─────────────────────────────
 const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
-    const [step, setStep] = useState('intro'); // 'intro' | 'straight' | 'left' | 'right' | 'submitting' | 'success'
+    const [provider, setProvider] = useState(null); // null | 'native' | 'persona' | 'sumsub'
+    const [step, setStep] = useState('intro'); // 'intro' | 'straight' | 'left' | 'right' | 'submitting' | 'success' | 'persona-init' | 'persona-liveness' | 'persona-doc' | 'sumsub-terms' | 'sumsub-init' | 'sumsub-liveness'
     const [progress, setProgress] = useState(0);
     const [errorMessage, setErrorMessage] = useState('');
     const [isCameraActive, setIsCameraActive] = useState(false);
+    const [consentChecked, setConsentChecked] = useState(false);
+    const [sdkProgress, setSdkProgress] = useState(0);
+    const [sdkPrompt, setSdkPrompt] = useState('');
+
     const videoRef = useRef(null);
     const streamRef = useRef(null);
+    const sdkTimerRef = useRef(null);
 
     const startCamera = async () => {
         setErrorMessage('');
@@ -326,8 +348,22 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
         setIsCameraActive(false);
     };
 
+    const handleClose = useCallback(() => {
+        stopCamera();
+        if (sdkTimerRef.current) clearTimeout(sdkTimerRef.current);
+        setStep('intro');
+        setProvider(null);
+        setConsentChecked(false);
+        setSdkProgress(0);
+        setSdkPrompt('');
+        onClose();
+    }, [onClose]);
+
+    // Auto camera trigger for scanning steps
     useEffect(() => {
-        if (isOpen && step !== 'intro' && step !== 'submitting' && step !== 'success') {
+        const isScanningStep = step === 'straight' || step === 'left' || step === 'right' || 
+                              step === 'persona-liveness' || step === 'persona-doc' || step === 'sumsub-liveness';
+        if (isOpen && isScanningStep) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             startCamera();
         } else {
@@ -336,26 +372,7 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
         return () => stopCamera();
     }, [step, isOpen]);
 
-    const handleStartVerification = () => {
-        setStep('straight');
-        setProgress(15);
-    };
-
-    const captureSnapshot = (position) => {
-        setProgress(prev => prev + 25);
-        
-        if (position === 'straight') {
-            setStep('left');
-        } else if (position === 'left') {
-            setStep('right');
-        } else if (position === 'right') {
-            setStep('submitting');
-            stopCamera();
-            runBiometricAnalysis();
-        }
-    };
-
-    const runBiometricAnalysis = () => {
+    const runBiometricAnalysis = useCallback(() => {
         let currentProgress = 65;
         const interval = setInterval(() => {
             if (currentProgress < 100) {
@@ -371,11 +388,131 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
                     } else {
                         setErrorMessage(res.error || 'Verification failed. Try again.');
                         setStep('intro');
+                        setProvider(null);
                     }
                 });
             }
         }, 200);
+    }, [userId, onVerifySuccess]);
+
+    const captureSnapshot = (position) => {
+        setProgress(prev => prev + 25);
+        
+        if (position === 'straight') {
+            setStep('left');
+        } else if (position === 'left') {
+            setStep('right');
+        } else if (position === 'right') {
+            setStep('submitting');
+            stopCamera();
+            runBiometricAnalysis();
+        }
     };
+
+    // Handle SDK automation simulation
+    useEffect(() => {
+        if (sdkTimerRef.current) clearTimeout(sdkTimerRef.current);
+
+        if (step === 'persona-init') {
+            sdkTimerRef.current = setTimeout(() => {
+                setSdkProgress(15);
+                setSdkPrompt('Align your face inside the green frame');
+                setStep('persona-liveness');
+            }, 1000);
+        } else if (step === 'persona-liveness') {
+            const t1 = setTimeout(() => {
+                setSdkProgress(45);
+                setSdkPrompt('Hold steady. Analyzing liveness...');
+            }, 1800);
+
+            const t2 = setTimeout(() => {
+                setSdkProgress(75);
+                setSdkPrompt('Blink once now to verify human identity');
+            }, 3600);
+
+            const t3 = setTimeout(() => {
+                setSdkProgress(95);
+                setSdkPrompt('Scanning complete! Saving selfie...');
+            }, 5400);
+
+            const t4 = setTimeout(() => {
+                setSdkProgress(20);
+                setSdkPrompt('Hold the front of your ID card to the screen');
+                setStep('persona-doc');
+            }, 6800);
+
+            return () => {
+                clearTimeout(t1);
+                clearTimeout(t2);
+                clearTimeout(t3);
+                clearTimeout(t4);
+            };
+        } else if (step === 'persona-doc') {
+            const t1 = setTimeout(() => {
+                setStep('submitting');
+                setProgress(65);
+                runBiometricAnalysis();
+            }, 2500);
+
+            return () => clearTimeout(t1);
+        } else if (step === 'sumsub-init') {
+            sdkTimerRef.current = setTimeout(() => {
+                setSdkProgress(20);
+                setSdkPrompt('Position face inside the blue oval');
+                setStep('sumsub-liveness');
+            }, 1000);
+        } else if (step === 'sumsub-liveness') {
+            const t1 = setTimeout(() => {
+                setSdkProgress(50);
+                setSdkPrompt('Move slightly closer to the camera');
+            }, 2000);
+
+            const t2 = setTimeout(() => {
+                setSdkProgress(80);
+                setSdkPrompt('Rotate your head slowly in a full circle');
+            }, 4000);
+
+            const t3 = setTimeout(() => {
+                setSdkProgress(95);
+                setSdkPrompt('Liveness matched! Computing biometric hash...');
+            }, 6000);
+
+            const t4 = setTimeout(() => {
+                setStep('submitting');
+                setProgress(65);
+                runBiometricAnalysis();
+            }, 7500);
+
+            return () => {
+                clearTimeout(t1);
+                clearTimeout(t2);
+                clearTimeout(t3);
+                clearTimeout(t4);
+            };
+        }
+
+        return () => {
+            if (sdkTimerRef.current) clearTimeout(sdkTimerRef.current);
+        };
+    }, [step, runBiometricAnalysis]);
+
+    const handleStartVerification = () => {
+        setProvider('native');
+        setStep('straight');
+        setProgress(15);
+    };
+
+    const handleStartPersona = () => {
+        setProvider('persona');
+        setStep('persona-init');
+    };
+
+    const handleStartSumsub = () => {
+        setProvider('sumsub');
+        setStep('sumsub-terms');
+    };
+
+
 
     if (!isOpen) return null;
 
@@ -387,7 +524,7 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
                         <Shield className="kyc-icon-lock" />
                         <span>Biometric KYC Verification</span>
                     </div>
-                    <button className="kyc-close-btn" onClick={() => { stopCamera(); onClose(); }}>
+                    <button className="kyc-close-btn" onClick={handleClose}>
                         <X size={18} />
                     </button>
                 </div>
@@ -425,9 +562,34 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
                                 </div>
                             )}
 
-                            <button className="kyc-action-btn font-black text-sm uppercase tracking-wider" onClick={handleStartVerification}>
-                                START CAMERA SCAN
-                            </button>
+                            <div className="kyc-provider-choices">
+                                <button type="button" className="kyc-provider-card sumsub" onClick={handleStartSumsub}>
+                                    <div className="kyc-provider-icon sumsub">🌐</div>
+                                    <div className="kyc-provider-info">
+                                        <span className="kyc-provider-name text-left">Verify using Sumsub SDK</span>
+                                        <span className="kyc-provider-desc text-left">Recommended. Automated oval face rotation check.</span>
+                                    </div>
+                                    <ChevronRight size={14} className="ml-auto text-slate-500 self-center" />
+                                </button>
+
+                                <button type="button" className="kyc-provider-card persona" onClick={handleStartPersona}>
+                                    <div className="kyc-provider-icon persona">🛡️</div>
+                                    <div className="kyc-provider-info">
+                                        <span className="kyc-provider-name text-left">Verify using Persona SDK</span>
+                                        <span className="kyc-provider-desc text-left">Automated selfie scan & ID card capture portals.</span>
+                                    </div>
+                                    <ChevronRight size={14} className="ml-auto text-slate-500 self-center" />
+                                </button>
+
+                                <button type="button" className="kyc-provider-card native" onClick={handleStartVerification}>
+                                    <div className="kyc-provider-icon native">📸</div>
+                                    <div className="kyc-provider-info">
+                                        <span className="kyc-provider-name text-left">TypeMaster Native Scan</span>
+                                        <span className="kyc-provider-desc text-left">Standard 3-angle mesh webcam snapshots.</span>
+                                    </div>
+                                    <ChevronRight size={14} className="ml-auto text-slate-500 self-center" />
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -436,7 +598,7 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
                             <div className="kyc-scan-viewport">
                                 {isCameraActive ? (
                                     <video ref={videoRef} className="kyc-video-feed" autoPlay playsInline muted />
-                                ) : (
+                               ) : (
                                     <div className="kyc-fallback-scanner">
                                         <div className="kyc-hud-mesh">
                                             <div className="kyc-laser-line" />
@@ -471,34 +633,190 @@ const KycVerificationModal = ({ isOpen, onClose, onVerifySuccess, userId }) => {
                         </div>
                     )}
 
+                    {step === 'persona-init' && (
+                        <div className="persona-sdk-frame">
+                            <div className="persona-sdk-header">
+                                <span className="persona-sdk-logo">Persona SDK Portal</span>
+                                <span className="text-slate-500 font-mono text-[9px]">Initializing...</span>
+                            </div>
+                            <div className="persona-sdk-body py-10">
+                                <RefreshCw className="animate-spin text-emerald-400 mb-4" size={32} />
+                                <span className="text-xs font-bold text-slate-300">Connecting to Persona Secure Enclave...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'persona-liveness' && (
+                        <div className="persona-sdk-frame">
+                            <div className="persona-sdk-header">
+                                <span className="persona-sdk-logo">Persona SDK Portal</span>
+                                <span className="text-emerald-400 font-bold font-mono text-[9px]">LIVENESS CHECK</span>
+                            </div>
+                            <div className="persona-sdk-body">
+                                <div className="persona-liveness-oval">
+                                    {isCameraActive ? (
+                                        <video ref={videoRef} className="kyc-video-feed" autoPlay playsInline muted />
+                                    ) : (
+                                        <div className="kyc-fallback-scanner">
+                                            <div className="kyc-hud-mesh">
+                                                <div className="kyc-laser-line" style={{ background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+                                                <svg viewBox="0 0 100 100" className="kyc-svg-outline">
+                                                    <path d="M 50 15 C 30 15, 25 35, 25 50 C 25 70, 35 85, 50 85 C 65 85, 75 70, 75 50 C 75 35, 70 15, 50 15 Z" fill="none" stroke="#10b981" strokeWidth="1" strokeDasharray="3, 3" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-slate-200 mb-1">{sdkPrompt}</span>
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-mono">SDK Telemetry Active</span>
+                                <div className="persona-progress-bar">
+                                    <div className="persona-progress-fill" style={{ width: `${sdkProgress}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'persona-doc' && (
+                        <div className="persona-sdk-frame">
+                            <div className="persona-sdk-header">
+                                <span className="persona-sdk-logo">Persona SDK Portal</span>
+                                <span className="text-emerald-400 font-bold font-mono text-[9px]">ID SCANNER</span>
+                            </div>
+                            <div className="persona-sdk-body">
+                                <div className="persona-doc-rect">
+                                    {isCameraActive ? (
+                                        <video ref={videoRef} className="kyc-video-feed" autoPlay playsInline muted />
+                                    ) : (
+                                        <div className="kyc-fallback-scanner">
+                                            <div className="kyc-hud-mesh">
+                                                <div className="kyc-laser-line" style={{ background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+                                                <svg viewBox="0 0 100 100" className="kyc-svg-outline" style={{ width: '220px', height: '140px' }}>
+                                                    <rect x="10" y="20" width="80" height="60" rx="4" fill="none" stroke="#10b981" strokeWidth="1" strokeDasharray="3, 3" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-slate-200 mb-1">{sdkPrompt}</span>
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-mono">Align ID inside box</span>
+                                <div className="persona-progress-bar">
+                                    <div className="persona-progress-fill" style={{ width: `${sdkProgress}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'sumsub-terms' && (
+                        <div className="sumsub-sdk-frame">
+                            <div className="sumsub-sdk-header">
+                                <span className="sumsub-sdk-logo">Sumsub Verification</span>
+                                <span className="text-slate-500 font-mono text-[9px]">Step 1 of 2</span>
+                            </div>
+                            <div className="sumsub-sdk-body text-left">
+                                <h4 className="text-xs font-bold text-slate-200 mb-2">Consent to Data Processing</h4>
+                                <div className="sumsub-consent-box mb-4">
+                                    <input 
+                                        type="checkbox" 
+                                        id="sumsub-consent" 
+                                        className="sumsub-consent-checkbox mr-2.5"
+                                        checked={consentChecked}
+                                        onChange={(e) => setConsentChecked(e.target.checked)}
+                                    />
+                                    <label htmlFor="sumsub-consent" className="cursor-pointer text-slate-400 font-medium">
+                                        I agree to the processing of my biometric facial patterns and camera screenshots by Sumsub for the purpose of checking identity, anti-cheat enforcement, and compliance verification.
+                                    </label>
+                                </div>
+                                <button 
+                                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none"
+                                    disabled={!consentChecked}
+                                    onClick={() => setStep('sumsub-init')}
+                                >
+                                    Agree & Continue
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'sumsub-init' && (
+                        <div className="sumsub-sdk-frame">
+                            <div className="sumsub-sdk-header">
+                                <span className="sumsub-sdk-logo">Sumsub Verification</span>
+                                <span className="text-slate-500 font-mono text-[9px]">Initializing...</span>
+                            </div>
+                            <div className="sumsub-sdk-body py-10">
+                                <RefreshCw className="animate-spin text-blue-500 mb-4" size={32} />
+                                <span className="text-xs font-bold text-slate-300">Launching secure liveness module...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'sumsub-liveness' && (
+                        <div className="sumsub-sdk-frame">
+                            <div className="sumsub-sdk-header">
+                                <span className="sumsub-sdk-logo">Sumsub Verification</span>
+                                <span className="text-blue-500 font-bold font-mono text-[9px]">Liveness Check</span>
+                            </div>
+                            <div className="sumsub-sdk-body">
+                                <div className="sumsub-liveness-oval relative">
+                                    <div className="sumsub-progress-circle" />
+                                    {isCameraActive ? (
+                                        <video ref={videoRef} className="kyc-video-feed" autoPlay playsInline muted />
+                                    ) : (
+                                        <div className="kyc-fallback-scanner">
+                                            <div className="kyc-hud-mesh">
+                                                <div className="kyc-laser-line" style={{ background: '#3b82f6', boxShadow: '0 0 10px #3b82f6' }} />
+                                                <svg viewBox="0 0 100 100" className="kyc-svg-outline" style={{ width: '130px', height: '170px' }}>
+                                                    <ellipse cx="50" cy="50" rx="25" ry="35" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="3, 3" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-slate-200 mb-1">{sdkPrompt}</span>
+                                <span className="text-[9px] text-blue-400 font-bold uppercase tracking-widest font-mono">Progress: {sdkProgress}%</span>
+                            </div>
+                        </div>
+                    )}
+
                     {step === 'submitting' && (
                         <div className="kyc-step-submitting">
                             <div className="kyc-loader-circle">
-                                <RefreshCw className="animate-spin text-indigo-500" size={40} />
+                                <RefreshCw className={`animate-spin ${provider === 'persona' ? 'text-emerald-400' : provider === 'sumsub' ? 'text-blue-500' : 'text-indigo-500'}`} size={40} />
                             </div>
-                            <h3 className="kyc-body-title">Analyzing Biometric Hashes</h3>
+                            <h3 className="kyc-body-title">
+                                {provider === 'persona' ? "Persona Verification Portal" : provider === 'sumsub' ? "Sumsub Core Enclave" : "Analyzing Biometric Hashes"}
+                            </h3>
                             <p className="kyc-body-text">
-                                Verifying liveness vectors and computing unique physical facial prints. This ensures each individual is tied to a single profile node...
+                                {provider === 'persona' ? "Persona AI is calculating face match indices and verifying ID card authenticity..." :
+                                 provider === 'sumsub' ? "Sumsub AI Engine is matching liveness telemetry vectors and computing cryptographic prints..." :
+                                 "Verifying liveness vectors and computing unique physical facial prints. This ensures each individual is tied to a single profile node..."}
                             </p>
                             <div className="kyc-progress-bar-container">
-                                <div className="kyc-progress-bar-fill" style={{ width: `${progress}%` }} />
+                                <div className="kyc-progress-bar-fill" style={{ width: `${progress}%`, background: provider === 'persona' ? '#10b981' : provider === 'sumsub' ? '#3b82f6' : 'linear-gradient(90deg, #6366f1, #d946ef)' }} />
                             </div>
                             <div className="kyc-loading-status font-mono">
-                                {progress < 90 ? "COMPUTING SHA-256 FACE MESH..." : "VERIFYING BLOCKCHAIN LEDGER UNIQUE KEYS..."}
+                                {progress < 90 ? "COMPUTING SHA-256 FACE MESH..." : "VERIFYING IDENTITY CREDENTIAL LEDGER..."}
                             </div>
                         </div>
                     )}
 
                     {step === 'success' && (
                         <div className="kyc-step-success">
-                            <div className="kyc-success-glow">
-                                <CheckCircle2 size={56} className="text-emerald-400" />
+                            <div className="kyc-success-glow" style={{ boxShadow: provider === 'persona' ? '0 0 30px rgba(16, 185, 129, 0.2)' : provider === 'sumsub' ? '0 0 30px rgba(59, 130, 246, 0.2)' : '0 0 30px rgba(16, 185, 129, 0.2)' }}>
+                                <CheckCircle2 size={56} className={provider === 'persona' ? 'text-emerald-400' : provider === 'sumsub' ? 'text-blue-500' : 'text-emerald-400'} />
                             </div>
-                            <h3 className="kyc-body-title text-emerald-400">Verifications Authenticated!</h3>
+                            <h3 className={`kyc-body-title ${provider === 'persona' ? 'text-emerald-400' : provider === 'sumsub' ? 'text-blue-500' : 'text-emerald-400'}`}>
+                                {provider === 'persona' ? "Persona SDK Authenticated!" : provider === 'sumsub' ? "Sumsub Approved Profile!" : "Verifications Authenticated!"}
+                            </h3>
                             <p className="kyc-body-text">
-                                Your liveness signature was successfully logged. You have been granted full clearance for the Real-Money Betting Arena and cash withdrawals.
+                                {provider === 'persona' ? "Persona has verified your identity profile. Full betting clearance and instant coin withdraws have been unlocked." :
+                                 provider === 'sumsub' ? "Sumsub automated biometric checks have approved your active status node. Full wagering clearances enabled." :
+                                 "Your liveness signature was successfully logged. You have been granted full clearance for the Real-Money Betting Arena and cash withdrawals."}
                             </p>
-                            <button className="kyc-success-close-btn" onClick={onClose}>
+                            <button 
+                                className={`kyc-success-close-btn border-none cursor-pointer ${provider === 'persona' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : provider === 'sumsub' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`} 
+                                onClick={handleClose}
+                            >
                                 PROCEED TO ARENA
                             </button>
                         </div>
@@ -559,6 +877,7 @@ const TypingDuels = () => {
     const [isCreator, setIsCreator] = useState(false);
     const [opponentName, setOpponentName] = useState('');
     const [opponentEmoji, setOpponentEmoji] = useState('🤖');
+    const [opponentWpm, setOpponentWpm] = useState(0);
     const [roomCreationLoading, setRoomCreationLoading] = useState(false);
     const [walletBalance, setWalletBalance] = useState(0);
 
@@ -615,6 +934,7 @@ const TypingDuels = () => {
         setRaceText(text);
         setTyped('');
         setBotProgress(0);
+        setOpponentWpm(0);
         setResult(null);
         resetWpm();
 
@@ -657,6 +977,7 @@ const TypingDuels = () => {
             setOpponentEmoji('⏳');
             setTyped('');
             setBotProgress(0);
+            setOpponentWpm(0);
             setResult(null);
             resetWpm();
             
@@ -733,6 +1054,7 @@ const TypingDuels = () => {
             setOpponentEmoji('⚡');
             setTyped('');
             setBotProgress(0);
+            setOpponentWpm(0);
             setResult(null);
             resetWpm();
 
@@ -800,6 +1122,9 @@ const TypingDuels = () => {
         streamChannel.on('broadcast', { event: 'progress' }, ({ payload }) => {
             if (payload && payload.userId !== (user?.id || 'local_user')) {
                 setBotProgress(payload.progress);
+                if (payload.wpm !== undefined) {
+                    setOpponentWpm(payload.wpm);
+                }
             }
         });
 
@@ -908,6 +1233,15 @@ const TypingDuels = () => {
             const pct = (botTyped / totalChars) * 100;
             setBotProgress(pct);
 
+            // Dynamically set opponent WPM for bot/fallback
+            const elapsed = (Date.now() - (raceStartTime.current || Date.now())) / 1000;
+            if (elapsed > 1) {
+                const currentBotWpm = Math.round((botTyped / 5) / (elapsed / 60));
+                setOpponentWpm(currentBotWpm);
+            } else {
+                setOpponentWpm(Math.round(speed));
+            }
+
             // Bot finished first
             if (botTyped >= totalChars) {
                 clearInterval(botTimerRef.current);
@@ -973,9 +1307,16 @@ const TypingDuels = () => {
                     <span>Typing Duels & Wagers</span>
                 </div>
                 <div className="td-wallet-status flex items-center gap-6">
-                    <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800 text-yellow-500 font-bold text-xs tracking-wider">
+                    <div className="flex items-center gap-2 bg-slate-900/80 pl-4 pr-2.5 py-1.5 rounded-full border border-slate-800 text-yellow-500 font-bold text-xs tracking-wider">
                         <Coins size={14} />
                         <span>{walletBalance} COINS</span>
+                        <button 
+                            className="ml-1.5 p-0.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 rounded-full transition-all duration-300 flex items-center justify-center cursor-pointer border-none"
+                            onClick={() => window.dispatchEvent(new CustomEvent('trigger-stripe-deposit'))}
+                            title="Deposit Coins via Stripe"
+                        >
+                            <Plus size={10} strokeWidth={4} />
+                        </button>
                     </div>
                     {kycStatus === 'verified' ? (
                         <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
@@ -1308,6 +1649,7 @@ const TypingDuels = () => {
                             playerName={user?.name || 'You'}
                             botName={opponentName}
                             botEmoji={opponentEmoji}
+                            opponentWpm={opponentWpm}
                         />
                     </div>
 
@@ -1722,6 +2064,92 @@ const TypingDuels = () => {
                 }
                 .kyc-success-close-btn { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
                 .kyc-success-close-btn:hover { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); }
+
+                /* Provider Choice Cards */
+                .kyc-provider-choices {
+                    display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 10px;
+                }
+                .kyc-provider-card {
+                    background: rgba(30, 41, 59, 0.3); border: 1px solid #1e293b; border-radius: 16px;
+                    padding: 16px; text-align: left; cursor: pointer; transition: all 0.2s ease;
+                    display: flex; align-items: flex-start; gap: 14px; width: 100%; box-sizing: border-box;
+                }
+                .kyc-provider-card:hover {
+                    border-color: #4f46e5; background: rgba(30, 41, 59, 0.6);
+                    transform: translateY(-1px);
+                }
+                .kyc-provider-card.persona:hover { border-color: #10b981; }
+                .kyc-provider-card.sumsub:hover { border-color: #3b82f6; }
+                .kyc-provider-icon {
+                    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+                    display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;
+                }
+                .kyc-provider-icon.persona { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; }
+                .kyc-provider-icon.sumsub { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #3b82f6; }
+                .kyc-provider-icon.native { background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #6366f1; }
+                .kyc-provider-info { display: flex; flex-direction: column; gap: 2px; }
+                .kyc-provider-name { font-size: 13px; font-weight: 800; color: #f1f5f9; }
+                .kyc-provider-desc { font-size: 11px; color: #64748b; line-height: 1.4; }
+
+                /* Persona SDK styles */
+                .persona-sdk-frame {
+                    background: #0f172a; border: 2px solid #10b981; border-radius: 18px;
+                    width: 100%; display: flex; flex-direction: column; overflow: hidden;
+                    box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
+                }
+                .persona-sdk-header {
+                    background: #0b0f19; padding: 12px 18px; border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+                    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+                }
+                .persona-sdk-logo { font-weight: 900; color: #10b981; letter-spacing: 0.05em; text-transform: uppercase; }
+                .persona-sdk-body { padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
+                .persona-liveness-oval {
+                    position: relative; width: 200px; height: 200px; border-radius: 50%;
+                    border: 3px dashed #10b981; overflow: hidden; background: #020617; margin-bottom: 16px;
+                }
+                .persona-doc-rect {
+                    position: relative; width: 260px; height: 160px; border-radius: 12px;
+                    border: 3px dashed #10b981; overflow: hidden; background: #020617; margin-bottom: 16px;
+                }
+                .persona-progress-bar {
+                    width: 100%; height: 4px; background: rgba(16, 185, 129, 0.1);
+                    border-radius: 2px; overflow: hidden; margin-top: 12px;
+                }
+                .persona-progress-fill {
+                    height: 100%; background: #10b981; transition: width 0.3s ease;
+                }
+
+                /* Sumsub SDK styles */
+                .sumsub-sdk-frame {
+                    background: #0f172a; border: 2px solid #3b82f6; border-radius: 18px;
+                    width: 100%; display: flex; flex-direction: column; overflow: hidden;
+                    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+                }
+                .sumsub-sdk-header {
+                    background: #0b0f19; padding: 12px 18px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+                    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+                }
+                .sumsub-sdk-logo { font-weight: 900; color: #3b82f6; letter-spacing: 0.05em; text-transform: uppercase; }
+                .sumsub-sdk-body { padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
+                .sumsub-consent-box {
+                    display: flex; gap: 10px; background: rgba(2, 6, 23, 0.4);
+                    padding: 14px; border-radius: 10px; border: 1px solid #1e293b;
+                    font-size: 11px; text-align: left; line-height: 1.5; margin-bottom: 16px;
+                }
+                .sumsub-consent-checkbox { margin-top: 2px; cursor: pointer; }
+                .sumsub-liveness-oval {
+                    position: relative; width: 180px; height: 230px; border-radius: 100px;
+                    border: 3px solid #3b82f6; overflow: hidden; background: #020617; margin-bottom: 16px;
+                }
+                .sumsub-progress-circle {
+                    position: absolute; inset: -3px; border-radius: 100px;
+                    border: 3px solid transparent; border-top-color: #3b82f6;
+                    animation: sumsub-spin 2s linear infinite;
+                }
+                @keyframes sumsub-spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
             `}</style>
         </div>
     );
