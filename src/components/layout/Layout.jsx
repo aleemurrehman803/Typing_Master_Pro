@@ -347,7 +347,7 @@ const Layout = ({ children }) => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
             {/* Desktop Sidebar */}
-            <aside className={`w-80 bg-slate-900 dark:bg-slate-950 text-white fixed h-full hidden md:flex flex-col z-30 shadow-2xl border-r border-transparent dark:border-slate-800 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}`}>
+            <aside className={`w-64 bg-slate-900 dark:bg-slate-950 text-white fixed h-full hidden md:flex flex-col z-30 shadow-2xl border-r border-transparent dark:border-slate-800 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}`}>
                 {/* Logo Section */}
                 <div className="p-6 border-b border-slate-800 dark:border-slate-800/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -487,7 +487,7 @@ const Layout = ({ children }) => {
             {/* Mobile Sidebar */}
             <aside
                 ref={mobileMenuRef}
-                className={`fixed top-0 left-0 h-full w-80 bg-slate-900 dark:bg-slate-950 text-white z-50 md:hidden transform transition-transform duration-300 shadow-2xl ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                className={`fixed top-0 left-0 h-full w-64 bg-slate-900 dark:bg-slate-950 text-white z-50 md:hidden transform transition-transform duration-300 shadow-2xl ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}>
 
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between">
@@ -531,7 +531,7 @@ const Layout = ({ children }) => {
             <button
                 onClick={toggleSidebar}
                 className={`fixed top-1/2 z-40 -translate-y-1/2 w-8 h-16 bg-slate-900/80 dark:bg-slate-950/80 hover:bg-indigo-600 dark:hover:bg-indigo-600 border border-slate-800 dark:border-slate-800/80 text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-300 group shadow-lg backdrop-blur-md hidden md:flex rounded-r-2xl border-l-0 ${
-                    sidebarCollapsed ? 'left-0' : 'left-[320px]'
+                    sidebarCollapsed ? 'left-0' : 'left-[256px]'
                 }`}
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
@@ -560,7 +560,7 @@ const Layout = ({ children }) => {
             </button>
 
             {/* Main Content Area */}
-            <main className={`flex-1 min-h-screen flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:ml-0' : 'md:ml-80'}`}>
+            <main className={`flex-1 min-h-screen flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'md:ml-0' : 'md:ml-64'}`}>
                 {/* Ultra-Modern Enhanced Navbar */}
                 <header className="relative bg-gradient-to-r from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800 sticky top-0 z-20 transition-all duration-500 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
                     {/* Animated gradient overlay */}
