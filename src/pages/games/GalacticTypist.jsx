@@ -178,7 +178,7 @@ const GalacticTypist = () => {
             ctx.shadowColor = a.color;
             ctx.fillStyle = a.color;
             ctx.beginPath();
-            ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+            ctx.arc(a.x, a.y, Math.max(0, a.size), 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
 
@@ -215,7 +215,7 @@ const GalacticTypist = () => {
             ctx.globalAlpha = p.life;
             ctx.fillStyle = p.color;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, Math.max(0, p.size * p.life), 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
