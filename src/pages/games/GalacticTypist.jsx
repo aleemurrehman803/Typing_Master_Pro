@@ -207,13 +207,16 @@ const GalacticTypist = () => {
             p.x += p.vx * 60 * deltaTime;
             p.y += p.vy * 60 * deltaTime;
 
-            ctx.globalAlpha = Math.max(0, p.life);
+            if (p.life <= 0) {
+                particles.current.splice(i, 1);
+                continue;
+            }
+
+            ctx.globalAlpha = p.life;
             ctx.fillStyle = p.color;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
             ctx.fill();
-
-            if (p.life <= 0) particles.current.splice(i, 1);
         }
         ctx.globalAlpha = 1;
 
