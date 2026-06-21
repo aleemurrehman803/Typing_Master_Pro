@@ -21,39 +21,75 @@ import { secureStorage } from '../utils/security';
 import { calculateNextDrill } from '../utils/tutor';
 import { detectKeyboardPolling } from '../utils/hardware';
 import { ShieldCheck, ShieldAlert, Zap, Cpu, BrainCircuit, Loader2, Wand2, Keyboard, ToggleLeft } from 'lucide-react';
-import { generateAIParagraph } from '../utils/aiGenerator';
+import { generateAIParagraph, saveAIDrill, loadSavedDrills } from '../utils/aiGenerator';
 import { soundEngine } from '../utils/soundEngine';
 import DynamicBackground from '../components/features/DynamicBackground';
 import SEOHead from '../components/SEOHead';
 
-// --- 20 CURATED PARAGRAPHS ---
+// --- EXPANDED 42 CURATED PARAGRAPHS (varied lengths per difficulty) ---
 const PRESET_PARAGRAPHS = {
     beginner: [
-        { id: 'b1', title: 'The Cat', text: "The cat sat on the mat. It was a sunny day. The cat looked happy." },
-        { id: 'b2', title: 'My Dog', text: "My dog loves to run in the park. He plays with a red ball." },
-        { id: 'b3', title: 'Apples', text: "Apples are red and green. They taste sweet and are good for you." },
-        { id: 'b4', title: 'The Sun', text: "The sun rises in the east. It gives us light and warmth every day." },
-        { id: 'b5', title: 'Reading', text: "I like reading books. Stories take me to new places in my mind." },
-        { id: 'b6', title: 'Coffee', text: "Coffee smells great in the morning. It helps people wake up fast." },
-        { id: 'b7', title: 'Rain', text: "Rain falls from the clouds. It makes the grass green and flowers grow." }
+        { id: 'b1', title: 'The Cat', text: "The cat sat on the mat. It was a sunny day outside. The cat looked happy and content." },
+        { id: 'b2', title: 'My Dog', text: "My dog loves to run in the park every morning. He chases a red ball and barks at the birds." },
+        { id: 'b3', title: 'Apples', text: "Apples are red and green. They taste sweet and are full of vitamins that are good for you." },
+        { id: 'b4', title: 'The Sun', text: "The sun rises in the east and sets in the west. It gives us light, warmth, and energy every single day." },
+        { id: 'b5', title: 'Reading', text: "I like reading books before bed. Stories carry me to new places and introduce me to amazing characters." },
+        { id: 'b6', title: 'Coffee', text: "Coffee smells wonderful in the morning. Many people drink it to wake up and start their day feeling alert." },
+        { id: 'b7', title: 'Rain', text: "Rain falls from dark clouds above. It waters the plants, fills the rivers, and makes the grass bright green." },
+        { id: 'b8', title: 'The Ocean', text: "The ocean is deep and wide. Waves crash on the shore while seagulls fly above and fish swim far below the surface." },
+        { id: 'b9', title: 'Cooking', text: "Cooking at home is fun and saves money. You can make fresh meals with vegetables, pasta, and spices you enjoy." },
+        { id: 'b10', title: 'Seasons', text: "There are four seasons in a year. Spring brings flowers, summer brings heat, autumn brings falling leaves, and winter brings snow." },
+        { id: 'b11', title: 'Music', text: "Music makes everyday tasks more enjoyable. Listening to your favorite songs while working can lift your mood and boost your energy." },
+        { id: 'b12', title: 'Bicycles', text: "Riding a bicycle is great exercise. It helps you stay fit, explore your neighborhood, and reduces pollution in the city." },
+        { id: 'b13', title: 'The Moon', text: "The moon glows softly at night. It reflects sunlight and moves through phases from a thin crescent to a bright full circle." },
+        { id: 'b14', title: 'Gardens', text: "Gardens are peaceful places. Growing tomatoes, herbs, and flowers teaches patience and gives you fresh produce for the kitchen table." },
+        { id: 'b15', title: 'Friends', text: "True friends support you when life gets hard. They listen, make you laugh, and remind you of your worth when you forget." }
     ],
     intermediate: [
-        { id: 'i1', title: 'Technology', text: "Technology changes how we live. Computers and phones connect us to the world instantly." },
-        { id: 'i2', title: 'Travel', text: "Traveling to new countries is exciting. You can try new foods and meet different people." },
-        { id: 'i3', title: 'Music', text: "Music has the power to change our mood. A happy song can make a bad day better." },
-        { id: 'i4', title: 'Space', text: "Space is vast and mysterious. Astronauts explore the stars to learn about our universe." },
-        { id: 'i5', title: 'Nature', text: "Forests are the lungs of our planet. Trees produce oxygen that we need to breathe." },
-        { id: 'i6', title: 'History', text: "Learning history helps us understand the past. It teaches us lessons for the future." },
-        { id: 'i7', title: 'Sports', text: "Playing sports keeps your body healthy. It also teaches teamwork and discipline." }
+        { id: 'i1', title: 'Technology', text: "Technology fundamentally changes how we live and work. Computers and smartphones connect billions of people instantly, reshaping commerce, education, and communication across every corner of the globe." },
+        { id: 'i2', title: 'Travel', text: "Traveling to new countries is a deeply enriching experience. Immersing yourself in different cultures, cuisines, and languages broadens your perspective and challenges assumptions you never knew you held." },
+        { id: 'i3', title: 'Music Theory', text: "Music has the remarkable power to alter our emotional state within seconds. Tempo, harmony, and melody work together to evoke joy, nostalgia, or melancholy without a single spoken word being needed." },
+        { id: 'i4', title: 'Space', text: "Space is incomprehensibly vast and largely unexplored. Astronomers estimate the observable universe contains over two trillion galaxies, each holding hundreds of billions of stars with planets orbiting them." },
+        { id: 'i5', title: 'Forests', text: "Forests are the ecological backbone of our planet. Beyond producing oxygen, they regulate rainfall patterns, shelter millions of species, and store enormous quantities of carbon that would otherwise warm our atmosphere." },
+        { id: 'i6', title: 'History', text: "Studying history equips us to understand the forces shaping the present. Examining past revolutions, innovations, and conflicts reveals repeating patterns that help us navigate contemporary political and social challenges." },
+        { id: 'i7', title: 'Sports Science', text: "Modern sports science has transformed athletic performance. Data analytics, nutrition protocols, and sleep optimization allow athletes today to routinely surpass records that previous generations considered the absolute limits of human capability." },
+        { id: 'i8', title: 'Psychology', text: "Human psychology is far more complex than we typically acknowledge. Cognitive biases, emotional regulation, and social influences shape our decisions in profound ways that we are largely unaware of in the moment." },
+        { id: 'i9', title: 'Economics', text: "Markets are decentralized information-processing systems of remarkable efficiency. Prices aggregate the dispersed knowledge of millions of participants into a single signal that guides production, allocation, and consumption across entire economies." },
+        { id: 'i10', title: 'Architecture', text: "Great architecture solves multiple problems simultaneously. A well-designed building must be structurally sound, energy efficient, aesthetically pleasing, and responsive to the lives and movements of the people who inhabit it daily." },
+        { id: 'i11', title: 'Nutrition', text: "The food we eat acts as information for our cells. Whole foods rich in micronutrients, fiber, and antioxidants support brain function, hormone balance, and immune resilience in ways that processed alternatives simply cannot replicate." },
+        { id: 'i12', title: 'Entrepreneurship', text: "Building a startup requires navigating relentless uncertainty with limited resources. The most successful founders combine genuine customer empathy with rigorous experimentation, treating each failure as a data point rather than a verdict." },
+        { id: 'i13', title: 'Climate', text: "Climate change is the defining environmental challenge of our era. Transitioning energy systems from fossil fuels to renewable sources demands unprecedented coordination across governments, corporations, and billions of individual consumers worldwide." },
+        { id: 'i14', title: 'Neuroscience', text: "The brain contains approximately eighty-six billion neurons forming trillions of synaptic connections. This electrochemical network generates consciousness, memory, language, and creativity through mechanisms that neuroscience is only beginning to decode." },
+        { id: 'i15', title: 'Philosophy', text: "Philosophy trains the mind to examine assumptions most people accept without question. Rigorous analysis of concepts like justice, knowledge, and consciousness reveals hidden complexities that have profound practical implications for how we organize society." }
     ],
     hard: [
-        { id: 'h1', title: 'Quantum Physics', text: "Quantum physics deals with the behavior of matter and energy at the most fundamental levels. It challenges our understanding of reality." },
-        { id: 'h2', title: 'Philosophy', text: "The unexamined life is not worth living, said Socrates. Philosophy encourages us to question existence and our values." },
-        { id: 'h3', title: 'Artificial Intelligence', text: "Artificial Intelligence simulates human intelligence in machines. It encompasses learning, reasoning, and self-correction." },
-        { id: 'h4', title: 'Climate Change', text: "Climate change refers to long-term shifts in temperatures and weather patterns. Human activities have been the main driver." },
-        { id: 'h5', title: 'Economics', text: "Economics is the social science that studies the production, distribution, and consumption of goods and services." },
-        { id: 'h6', title: 'Neuroscience', text: "The human brain is the most complex structure in the known universe. Neuroscience aims to map its billions of connections." }
+        { id: 'h1', title: 'Quantum Mechanics', text: "Quantum mechanics describes the behavior of particles at subatomic scales where classical intuitions completely break down. Wave-particle duality, superposition, and entanglement reveal a universe fundamentally probabilistic rather than deterministic in nature, challenging every philosophical assumption about reality." },
+        { id: 'h2', title: 'Socratic Method', text: "The Socratic method uses disciplined questioning to expose hidden assumptions within seemingly confident beliefs. By pursuing relentless logical examination of foundational concepts, Socrates demonstrated that wisdom begins with acknowledging the precise boundaries of what one genuinely does not know." },
+        { id: 'h3', title: 'Machine Learning', text: "Modern machine learning systems discover statistical patterns in vast datasets without explicit programming. Backpropagation through deep neural networks adjusts millions of parameters iteratively, enabling models to recognize images, translate languages, and generate coherent text with superhuman accuracy on narrow benchmarks." },
+        { id: 'h4', title: 'Climate Systems', text: "Earth's climate system consists of interlocking feedback loops spanning the atmosphere, oceans, ice sheets, and biosphere. Anthropogenic greenhouse gas emissions are disrupting these finely balanced cycles at geologically unprecedented rates, with cascading consequences that are difficult to model with precision." },
+        { id: 'h5', title: 'Macroeconomics', text: "Macroeconomic systems emerge from the aggregate interactions of billions of individual decisions, making them inherently complex and resistant to simple interventions. Central banks navigate the tension between controlling inflation and sustaining employment using imperfect models that capture only a fraction of real economic dynamics." },
+        { id: 'h6', title: 'Neuroplasticity', text: "The brain exhibits remarkable plasticity throughout life, continually reorganizing its synaptic architecture in response to experience and learning. Hebbian strengthening of frequently activated neural pathways underlies skill acquisition, while competitive pruning eliminates connections that fall into disuse, sculpting expertise from repetition." },
+        { id: 'h7', title: 'Cryptography', text: "Modern public-key cryptography rests on the computational asymmetry between multiplying large prime numbers and factoring their product. RSA encryption exploits this mathematical trapdoor to secure digital communications, though the advent of sufficiently powerful quantum computers would render existing protocols obsolete overnight." },
+        { id: 'h8', title: 'Thermodynamics', text: "The second law of thermodynamics states that entropy in a closed system never spontaneously decreases. This profound constraint implies a thermodynamic arrow of time, explains why engines cannot achieve perfect efficiency, and underpins our understanding of why complexity and order are thermodynamically costly to maintain." },
+        { id: 'h9', title: 'Evolutionary Biology', text: "Natural selection acts on heritable variation in reproductive fitness, accumulating adaptive traits across generations without foresight or design. The extraordinary complexity of biological systems from the genetic code to the vertebrate eye emerges from this blind iterative process operating over millions of years of geological time." },
+        { id: 'h10', title: 'General Relativity', text: "Einstein's general relativity describes gravity not as a force but as the curvature of spacetime caused by mass and energy. Massive objects warp the fabric of spacetime around them, and other bodies follow geodesic paths through this curved geometry, an effect we experience as gravitational attraction between objects." },
+        { id: 'h11', title: 'Linguistics', text: "Noam Chomsky's universal grammar hypothesis proposes that the capacity for language is biologically innate, with all human languages sharing a deep generative structure. Children acquire complex syntax with minimal explicit instruction, suggesting the brain contains specialized neural machinery dedicated to linguistic computation from birth." },
+        { id: 'h12', title: 'Distributed Systems', text: "Building reliable distributed systems requires confronting the fundamental impossibility results of computer science. The CAP theorem proves no distributed data store can simultaneously guarantee consistency, availability, and partition tolerance, forcing architects to make deliberate tradeoffs based on specific application requirements and failure scenarios." }
     ]
+};
+
+// --- Duration-to-target-character-count mapping ---
+const DURATION_CHAR_TARGETS = { 30: 250, 60: 500, 180: 1500, 300: 2500 };
+
+const scaleTextToDuration = (text, duration) => {
+    const target = DURATION_CHAR_TARGETS[duration] || 500;
+    if (text.length >= target) return text;
+    // Repeat/concatenate text until we meet the target length
+    let scaled = text;
+    while (scaled.length < target) {
+        scaled += ' ' + text;
+    }
+    return scaled.trim();
 };
 
 const Test = () => {
@@ -84,8 +120,24 @@ const Test = () => {
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
     const [aiGeneratedText, setAiGeneratedText] = useState('');
+    const [savedDrills, setSavedDrills] = useState(() => loadSavedDrills());
+    const [showSavedDrills, setShowSavedDrills] = useState(false);
+    const [aiSaveSuccess, setAiSaveSuccess] = useState(false);
+
+    // Paragraph deduplication history
+    const playedIdsRef = useRef([]);
 
     const [isFocusMode, setIsFocusMode] = useState(false);
+
+    // Deep Focus: toggle body CSS class so non-essential UI dims out
+    useEffect(() => {
+        if (isFocusMode) {
+            document.body.classList.add('typing-focus-active');
+        } else {
+            document.body.classList.remove('typing-focus-active');
+        }
+        return () => document.body.classList.remove('typing-focus-active');
+    }, [isFocusMode]);
 
     // Feature 13: Hardware Stats State
     const [hardware, setHardware] = useState(null);
@@ -153,18 +205,15 @@ const Test = () => {
         setKeyboardLayout(keyboardLayouts[nextIndex]);
     };
 
-    // Determine current text
+    // Determine current text — with duration-based scaling for preset mode
     const getCurrentText = useCallback(() => {
-        // Feature: Support new 200+ lesson system 'content' property vs old 'text'
         if (lesson) return lesson.content || lesson.text || "";
         if (mode === 'custom') return customText || "Please enter some custom text to begin.";
         if (mode === 'ai') return aiGeneratedText || "AI generated text will appear here.";
-
-        // 🎯 Level 2: Adaptive mode — auto-pick text based on user performance
         if (mode === 'adaptive') return getAdaptiveText(user?.stats) || "Practice text not available.";
 
         if (mode === 'code') {
-            const lang = ['javascript', 'python', 'html', 'rust', 'go', 'typescript'].includes(difficulty) ? difficulty : 'javascript';
+            const lang = ['javascript', 'python', 'html', 'css', 'rust', 'go', 'typescript', 'sql', 'java', 'cpp', 'bash'].includes(difficulty) ? difficulty : 'javascript';
             const snippets = CODE_SNIPPETS[lang];
             const s = snippets ? snippets.find(p => p.id === selectedParagraphId) : null;
             return s ? (s.content || s.text) : (snippets ? (snippets[0].content || snippets[0].text) : "Code snippet not found.");
@@ -174,8 +223,10 @@ const Test = () => {
         const sourceParagraphs = language === 'en' ? PRESET_PARAGRAPHS : MULTI_LANG_PARAGRAPHS[language];
         const allParagraphs = [...(sourceParagraphs.beginner||[]), ...(sourceParagraphs.intermediate||[]), ...(sourceParagraphs.hard||[])];
         const p = allParagraphs.find(p => p.id === selectedParagraphId);
-        return p ? (p.content || p.text) : (sourceParagraphs.beginner ? (sourceParagraphs.beginner[0].content || sourceParagraphs.beginner[0].text) : "No content found.");
-    }, [lesson, mode, customText, selectedParagraphId, difficulty, language, user?.stats, isAdaptiveMode]);
+        const baseText = p ? (p.content || p.text) : (sourceParagraphs.beginner ? (sourceParagraphs.beginner[0].content || sourceParagraphs.beginner[0].text) : "No content found.");
+        // Apply duration-based scaling for preset paragraphs
+        return scaleTextToDuration(baseText, duration);
+    }, [lesson, mode, customText, selectedParagraphId, difficulty, language, user?.stats, duration]);
 
     const currentText = getCurrentText();
 
@@ -204,20 +255,54 @@ const Test = () => {
         onInput(val);
     }, [onInput]);
 
-    // Feature 6: Generation Handler
+    // Feature 6: Generation Handler — now calls real HF API
     const handleAIGenerate = async () => {
         if (!aiPrompt.trim()) return;
         setIsGeneratingAI(true);
         try {
             const result = await generateAIParagraph(aiPrompt);
             setAiGeneratedText(result);
-            setMode('ai'); // Switch to AI mode to display the result
+            setMode('ai');
         } catch (error) {
             console.error("AI Generation Error:", error);
+            setAiGeneratedText("Unable to generate text at this time. Please try again.");
+            setMode('ai');
         } finally {
             setIsGeneratingAI(false);
         }
     };
+
+    // Save current AI drill
+    const handleSaveAIDrill = useCallback(() => {
+        if (!aiGeneratedText || !aiPrompt) return;
+        const ok = saveAIDrill(aiPrompt, aiGeneratedText);
+        if (ok) {
+            setSavedDrills(loadSavedDrills());
+            setAiSaveSuccess(true);
+            setTimeout(() => setAiSaveSuccess(false), 2000);
+        }
+    }, [aiGeneratedText, aiPrompt]);
+
+    // Load a saved drill back into the test
+    const handleLoadSavedDrill = useCallback((drill) => {
+        setAiPrompt(drill.prompt);
+        setAiGeneratedText(drill.text);
+        setMode('ai');
+        setShowSavedDrills(false);
+        setTimeout(() => { resetTest(); startTest(); }, 50);
+    }, [resetTest, startTest]);
+
+    // AI Prompt style pill presets
+    const AI_STYLE_PILLS = [
+        { label: '📘 Academic', suffix: ' in academic essay style' },
+        { label: '🚀 Sci-Fi', suffix: ' set in a futuristic sci-fi universe' },
+        { label: '⚕️ Medical', suffix: ' using medical and clinical terminology' },
+        { label: '🎸 Creative', suffix: ' in a vivid, creative storytelling style' },
+        { label: '📊 Business', suffix: ' in a professional business context' },
+        { label: '🧪 Scientific', suffix: ' with scientific precision and vocabulary' },
+        { label: '🗺️ Historical', suffix: ' from a historical perspective' },
+        { label: '💻 Technical', suffix: ' for software developers' },
+    ];
 
     // Feature: Voice Dictation Integration (Phase 6)
     const {
@@ -364,13 +449,30 @@ const Test = () => {
 
 
 
+    // Auto-rotate paragraph on restart — never repeat the last played one
+    const getNextParagraphId = useCallback((currentDiff) => {
+        const sourceParagraphs = language === 'en' ? PRESET_PARAGRAPHS : (MULTI_LANG_PARAGRAPHS[language] || PRESET_PARAGRAPHS);
+        const pool = sourceParagraphs[currentDiff] || sourceParagraphs.beginner || [];
+        if (pool.length <= 1) return pool[0]?.id || 'b1';
+        const played = playedIdsRef.current;
+        const unplayed = pool.filter(p => !played.includes(p.id));
+        const candidates = unplayed.length > 0 ? unplayed : pool;
+        const next = candidates[Math.floor(Math.random() * candidates.length)];
+        playedIdsRef.current = [...played, next.id].slice(-5); // Keep last 5
+        return next.id;
+    }, [language]);
+
     const handleRestart = useCallback(() => {
         setShowResult(false);
         setNewBadges([]);
-        setFailedSuddenDeath(false); // Reset sudden death failure
-        setFailedAccuracy(false); // 🔒 Reset Accuracy Lock
+        setFailedSuddenDeath(false);
+        setFailedAccuracy(false);
+        // Auto-rotate to a new paragraph on restart
+        if (mode === 'preset') {
+            setSelectedParagraphId(getNextParagraphId(difficulty));
+        }
         resetTest();
-    }, [resetTest]);
+    }, [resetTest, mode, difficulty, getNextParagraphId]);
 
     // Handle Paragraph Selection
     const handleParagraphSelect = (id) => {
@@ -740,9 +842,21 @@ const Test = () => {
                             </div>
                         </div>
 
-                        {/* Feature 6: AI Prompt Input Area */}
+                        {/* Feature 6: AI Prompt Input Area with Style Pills + Save/Load */}
                         {mode === 'ai_setup' ? (
                             <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
+                                {/* Style Pill Presets */}
+                                <div className="flex flex-wrap gap-2">
+                                    {AI_STYLE_PILLS.map((pill) => (
+                                        <button
+                                            key={pill.label}
+                                            onClick={() => setAiPrompt(prev => prev.endsWith(pill.suffix) ? prev : prev.replace(/( in .*)$/, '') + pill.suffix)}
+                                            className="px-3 py-1 text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                        >
+                                            {pill.label}
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
@@ -761,10 +875,49 @@ const Test = () => {
                                         {isGeneratingAI ? 'Thinking...' : 'Generate Drill'}
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium ml-1 flex items-center gap-2">
-                                    <Sparkles className="w-3 h-3 text-indigo-400" />
-                                    Infinite practice content based on your imagination.
-                                </p>
+                                <div className="flex items-center gap-3">
+                                    <p className="flex-1 text-xs text-slate-500 font-medium ml-1 flex items-center gap-2">
+                                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                                        Powered by Hugging Face AI — infinite practice content based on your imagination.
+                                    </p>
+                                    {aiGeneratedText && (
+                                        <button
+                                            onClick={handleSaveAIDrill}
+                                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                                aiSaveSuccess
+                                                    ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200'
+                                            }`}
+                                            title="Save this AI drill for later"
+                                        >
+                                            ⭐ {aiSaveSuccess ? 'Saved!' : 'Save Drill'}
+                                        </button>
+                                    )}
+                                    {savedDrills.length > 0 && (
+                                        <button
+                                            onClick={() => setShowSavedDrills(!showSavedDrills)}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                        >
+                                            📚 My Drills ({savedDrills.length})
+                                        </button>
+                                    )}
+                                </div>
+                                {/* Saved Drills Dropdown */}
+                                {showSavedDrills && savedDrills.length > 0 && (
+                                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto">
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">Saved AI Drills</p>
+                                        {savedDrills.map((drill) => (
+                                            <button
+                                                key={drill.id}
+                                                onClick={() => handleLoadSavedDrill(drill)}
+                                                className="w-full text-left px-3 py-2 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg border border-slate-100 dark:border-slate-700 transition-colors group"
+                                            >
+                                                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 truncate">{drill.prompt}</p>
+                                                <p className="text-xs text-slate-500 truncate mt-0.5">{drill.text}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ) : mode === 'custom' ? (
                             <div className="animate-in fade-in">
@@ -788,7 +941,7 @@ const Test = () => {
                                         {mode === 'code' ? 'Language:' : 'Difficulty:'}
                                     </label>
                                     {(mode === 'code'
-                                        ? ['javascript', 'python', 'html', 'rust', 'go', 'typescript']
+                                        ? ['javascript', 'typescript', 'python', 'html', 'css', 'sql', 'java', 'cpp', 'rust', 'go', 'bash']
                                         : ['beginner', 'intermediate', 'hard']
                                     ).map((option) => (
                                         <button
