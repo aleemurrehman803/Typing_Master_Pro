@@ -76,28 +76,28 @@ export default function CommunityChat() {
     const { user } = useAuthStore();
     const stats = user?.stats || { testsTaken: 0, avgWpm: 0, bestWpm: 0, accuracy: 0, history: [] };
 
+    // Safe JSON parser helper
+    const safeJsonParse = (key, defaultValue) => {
+        try {
+            const cached = localStorage.getItem(key);
+            if (!cached || cached === 'undefined') return defaultValue;
+            return JSON.parse(cached);
+        } catch (e) {
+            console.error(`Error parsing localStorage key "${key}":`, e);
+            return defaultValue;
+        }
+    };
+
     // Chat navigation states
-    const [rooms, setRooms] = useState(() => {
-        const cached = localStorage.getItem('tmp_chat_rooms');
-        return cached ? JSON.parse(cached) : INITIAL_ROOMS;
-    });
-    const [dms, setDms] = useState(() => {
-        const cached = localStorage.getItem('tmp_chat_dms');
-        return cached ? JSON.parse(cached) : INITIAL_DMS;
-    });
-    const [groups, setGroups] = useState(() => {
-        const cached = localStorage.getItem('tmp_chat_groups');
-        return cached ? JSON.parse(cached) : INITIAL_GROUPS;
-    });
+    const [rooms, setRooms] = useState(() => safeJsonParse('tmp_chat_rooms', INITIAL_ROOMS));
+    const [dms, setDms] = useState(() => safeJsonParse('tmp_chat_dms', INITIAL_DMS));
+    const [groups, setGroups] = useState(() => safeJsonParse('tmp_chat_groups', INITIAL_GROUPS));
 
     const [activeChat, setActiveChat] = useState(() => {
         return INITIAL_ROOMS[0]; // Default to Global Lobby
     });
 
-    const [messages, setMessages] = useState(() => {
-        const cached = localStorage.getItem('tmp_chat_messages');
-        return cached ? JSON.parse(cached) : PRE_SEEDED_MESSAGES;
-    });
+    const [messages, setMessages] = useState(() => safeJsonParse('tmp_chat_messages', PRE_SEEDED_MESSAGES));
 
     // Sub-menus & Features
     const [searchQuery, setSearchQuery] = useState('');

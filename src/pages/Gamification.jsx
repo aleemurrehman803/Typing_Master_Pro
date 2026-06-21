@@ -598,18 +598,26 @@ const NexusCommandCenter = () => {
     const [timeLeft, setTimeLeft] = useState('');
     const [activeTab, setActiveTab] = useState('All');
     
+    // Safe JSON parser helper
+    const safeJsonParse = (key, defaultValue) => {
+        try {
+            const cached = localStorage.getItem(key);
+            if (!cached || cached === 'undefined') return defaultValue;
+            return JSON.parse(cached);
+        } catch (e) {
+            console.error(`Error parsing localStorage key "${key}":`, e);
+            return defaultValue;
+        }
+    };
+
     // Transactions history state
-    const [transactions, setTransactions] = useState(() => {
-        const cached = localStorage.getItem('tmp_wallet_transactions');
-        if (cached) return JSON.parse(cached);
-        return [
-            { id: 1, date: '2026-06-20', type: 'Earned', desc: 'Daily Bounty - Word Master', amount: 50, status: 'CONFIRMED' },
-            { id: 2, date: '2026-06-19', type: 'Deposited', desc: 'Stripe Gateway Ref: #9021', amount: 1000, status: 'CONFIRMED' },
-            { id: 3, date: '2026-06-18', type: 'Withdrawn', desc: 'PayPal Payout Ref: #3019', amount: 200, status: 'PENDING' },
-            { id: 4, date: '2026-06-17', type: 'Earned', desc: 'Typing Duel Win vs Neo_V2', amount: 150, status: 'CONFIRMED' },
-            { id: 5, date: '2026-06-16', type: 'Earned', desc: 'Galactic Wave 10 Defense Bonus', amount: 80, status: 'FAILED' }
-        ];
-    });
+    const [transactions, setTransactions] = useState(() => safeJsonParse('tmp_wallet_transactions', [
+        { id: 1, date: '2026-06-20', type: 'Earned', desc: 'Daily Bounty - Word Master', amount: 50, status: 'CONFIRMED' },
+        { id: 2, date: '2026-06-19', type: 'Deposited', desc: 'Stripe Gateway Ref: #9021', amount: 1000, status: 'CONFIRMED' },
+        { id: 3, date: '2026-06-18', type: 'Withdrawn', desc: 'PayPal Payout Ref: #3019', amount: 200, status: 'PENDING' },
+        { id: 4, date: '2026-06-17', type: 'Earned', desc: 'Typing Duel Win vs Neo_V2', amount: 150, status: 'CONFIRMED' },
+        { id: 5, date: '2026-06-16', type: 'Earned', desc: 'Galactic Wave 10 Defense Bonus', amount: 80, status: 'FAILED' }
+    ]));
 
     // Modals visibility toggles
     const [isDepositOpen, setIsDepositOpen] = useState(false);
