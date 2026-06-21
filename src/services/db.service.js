@@ -357,5 +357,247 @@ export const DbService = {
         } catch (e) {
             return { success: false, error: e.message };
         }
+    },
+
+    /**
+     * Create a P2P betting match
+     */
+    async createBettingMatch(creatorId, wagerAmount, targetText) {
+        if (isSupabaseConfigured) {
+            try {
+                const { data, error } = await supabase.rpc('create_betting_match', {
+                    p_creator_id: creatorId,
+                    p_wager_amount: parseFloat(wagerAmount),
+                    p_target_text: targetText
+                });
+                if (error) throw error;
+                return data; // Returns { success: true, message: ..., match_id: ... }
+            } catch (err) {
+                console.error('[DB] createBettingMatch error:', err);
+                return { success: false, error: err.message };
+            }
+        }
+        
+        // Mock fallback
+        const currentCoins = parseInt(localStorage.getItem('arena_coins') || '0');
+        if (currentCoins < wagerAmount) {
+            return { success: false, error: 'Insufficient funds in wallet.' };
+        }
+        const newTotal = currentCoins - wagerAmount;
+        localStorage.setItem('arena_coins', newTotal.toString());
+        window.dispatchEvent(new CustomEvent('arena-coins-updated'));
+        
+        const matchId = `match_${Math.random().toString(36).substr(2, 9)}`;
+        const localMatches = JSON.parse(localStorage.getItem('tm_p2p_matches') || '[]');
+        const newMatch = {
+            id: matchId,
+            creator_id: creatorId,
+            challenger_id: null,
+            target_text: targetText,
+            wager_amount: wagerAmount,
+            status: 'waiting',
+            created_at: new Date().toISOString()
+        };
+        localMatches.push(newMatch);
+        localStorage.setItem('tm_p2p_matches', JSON.stringify(localMatches));
+        
+        return { success: true, message: 'Match created successfully', match_id: matchId };
+    },
+
+    /**
+     * Join a P2P betting match
+     */
+    async joinBettingMatch(challengerId, matchId) {
+        if (isSupabaseConfigured) {
+            try {
+                const { data, error } = await supabase.rpc('join_betting_match', {
+                    p_challenger_id: challengerId,
+                    p_match_id: matchId
+                });
+                if (error) throw error;
+                return data;
+            } catch (err) {
+                console.error('[DB] joinBettingMatch error:', err);
+                return { success: false, error: err.message };
+            }
+        }
+        
+        // Mock fallback
+        const localMatches = JSON.parse(localStorage.getItem('tm_p2p_matches') || '[]');
+        const matchIndex = localMatches.findIndex(m => m.id === matchId);
+        if (matchIndex === -1) {
+            return { success: false, error: 'Match is not available to join.' };
+        }
+        const match = localMatches[matchIndex];
+        if (match.status !== 'waiting') {
+            return { success: false, error: 'Match is not available to join.' };
+        }
+        if (match.creator_id === challengerId) {
+            return { success: false, error: 'You cannot join your own match.' };
+        }
+        
+        const currentCoins = parseInt(localStorage.getItem('arena_coins') || '0');
+        if (currentCoins < match.wager_amount) {
+            return { success: false, error: 'Insufficient funds in wallet.' };
+        }
+        
+        const newTotal = currentCoins - match.wager_amount;
+        localStorage.setItem('arena_coins', newTotal.toString());
+        window.dispatchEvent(new CustomEvent('arena-coins-updated'));
+        
+        match.challenger_id = challengerId;
+        match.status = 'active';
+        localMatches[matchIndex] = match;
+        localStorage.setItem('tm_p2p_matches', JSON.stringify(localMatches));
+        
+        return { success: true, message: 'Joined match successfully' };
+    },
+
+    /**
+     * Resolve a P2P betting match
+     */
+    async resolveBettingMatch(matchId, winnerId) {
+        if (isSupabaseConfigured) {
+            try {
+                const { data, error } = await supabase.rpc('resolve_betting_match', {
+                    p_match_id: matchId,
+                    p_winner_id: winnerId
+                });
+                if (error) throw error;
+                return data;
+            } catch (err) {
+                console.error('[DB] resolveBettingMatch error:', err);
+                return { success: false, error: err.message };
+            }
+        }
+        
+        // Mock fallback
+        const localMatches = JSON.parse(localStorage.getItem('tm_p2p_matches') || '[]');
+        const matchIndex = localMatches.findIndex(m => m.id === matchId);
+        if (matchIndex === -1) {
+            return { success: false, error: 'Match not found.' };
+        }
+        const match = localMatches[matchIndex];
+        if (match.status !== 'active') {
+            return { success: false, error: 'Match is not active.' };
+        }
+        
+        const totalPool = match.wager_amount * 2;
+        const rake = totalPool * 0.05;
+        const payout = totalPool - rake;
+        
+        match.status = 'completed';
+        match.winner_id = winnerId;
+        localMatches[matchIndex] = match;
+        localStorage.setItem('tm_p2p_matches', JSON.stringify(localMatches));
+        
+        // Award payout to winner if it is the user
+        const user = secureStorage.getItem('user');
+        if (user && user.id === winnerId) {
+            const currentCoins = parseInt(localStorage.getItem('arena_coins') || '0');
+            const newTotal = currentCoins + payout;
+            localStorage.setItem('arena_coins', newTotal.toString());
+            window.dispatchEvent(new CustomEvent('arena-coins-updated'));
+        }
+        
+        return { success: true, winner_id: winnerId, payout, rake };
+    },
+
+    /**
+     * Fetch waiting matches for the lobby
+     */
+    async fetchWaitingMatches() {
+        if (isSupabaseConfigured) {
+            try {
+                const { data, error } = await supabase
+                    .from('betting_matches')
+                    .select('*, profiles:creator_id(username, full_name)')
+                    .eq('status', 'waiting')
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                return { success: true, matches: data };
+            } catch (err) {
+                console.error('[DB] fetchWaitingMatches error:', err);
+                return { success: false, error: err.message, matches: [] };
+            }
+        }
+        
+        // Mock fallback waiting matches
+        const localMatches = JSON.parse(localStorage.getItem('tm_p2p_matches') || '[]');
+        const waiting = localMatches.filter(m => m.status === 'waiting');
+        
+        // Inject a few automatic mock matches if list is empty to keep lobby active
+        if (waiting.length === 0) {
+            const mockOpponents = [
+                { name: 'Speed Demon', wpm: 92, id: 'mock_user_1' },
+                { name: 'Keyboard Cat', wpm: 55, id: 'mock_user_2' },
+                { name: 'Neon Racer', wpm: 78, id: 'mock_user_3' }
+            ];
+            const sampleTexts = [
+                "The quick brown fox jumps over the lazy dog near the river bank.",
+                "Programming is the art of telling another human what one wants the computer to do.",
+                "Success is not final, failure is not fatal: it is the courage to continue."
+            ];
+            const now = new Date();
+            const defaults = mockOpponents.map((opp, idx) => ({
+                id: `mock_match_${idx}`,
+                creator_id: opp.id,
+                creator_name: opp.name,
+                creator_wpm: opp.wpm,
+                target_text: sampleTexts[idx],
+                wager_amount: (idx + 1) * 20,
+                status: 'waiting',
+                created_at: new Date(now.getTime() - idx * 60000).toISOString()
+            }));
+            return { success: true, matches: defaults };
+        }
+        
+        return { success: true, matches: waiting };
+    },
+
+    /**
+     * Update user KYC status
+     */
+    async updateKycStatus(userId, status, biometricHash = null) {
+        if (isSupabaseConfigured) {
+            try {
+                const updates = { 
+                    kyc_status: status, 
+                    kyc_verified_at: status === 'verified' ? new Date().toISOString() : null 
+                };
+                if (biometricHash) updates.kyc_biometric_hash = biometricHash;
+                
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .update(updates)
+                    .eq('id', userId)
+                    .select()
+                    .single();
+                if (error) throw error;
+                return { success: true, profile: data };
+            } catch (err) {
+                console.error('[DB] updateKycStatus error:', err);
+                return { success: false, error: err.message };
+            }
+        }
+        
+        // Mock fallback
+        const user = secureStorage.getItem('user');
+        if (user && user.id === userId) {
+            user.kyc_status = status;
+            user.kyc_verified_at = status === 'verified' ? new Date().toISOString() : null;
+            if (biometricHash) user.kyc_biometric_hash = biometricHash;
+            secureStorage.setItem('user', user);
+            
+            // Sync with profiles
+            const users = secureStorage.getItem('users') || {};
+            const normalizedEmail = user.email.toLowerCase().trim();
+            if (users[normalizedEmail]) {
+                users[normalizedEmail] = user;
+                secureStorage.setItem('users', users);
+            }
+            return { success: true, profile: user };
+        }
+        return { success: false, error: 'Local user not found' };
     }
 };
