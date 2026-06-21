@@ -31,7 +31,8 @@ import {
     Coins,
     Terminal,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    MessageSquare
 } from 'lucide-react';
 import _packageJson from '../../../package.json';
 import { secureStorage as _secureStorage } from '../../utils/security';
@@ -341,6 +342,7 @@ const Layout = ({ children }) => {
         { icon: GraduationCap, label: 'Lessons', path: '/learn' },
         { icon: Keyboard, label: 'Typing Test', path: '/test' },
         { icon: Gamepad2, label: 'Gamification', path: '/gamification' },
+        { icon: MessageSquare, label: 'Community Chat', path: '/community/chat' },
         ...(showArena ? [{ icon: Swords, label: 'Battle Arena', path: '/arena' }] : []),
         ...(showExams ? [{ icon: Trophy, label: 'Certifications', path: '/exams' }] : []),
     ];

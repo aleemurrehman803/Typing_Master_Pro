@@ -17,6 +17,7 @@ const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Certificates = lazy(() => import('./pages/Certificates'));
 const Exams = lazy(() => import('./pages/Exams'));
 const Gamification = lazy(() => import('./pages/Gamification'));
+const CommunityChat = lazy(() => import('./pages/CommunityChat'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -120,6 +121,7 @@ function App() {
             <Route path="/certificates" element={<ProtectedRoute><Certificates /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
+            <Route path="/community/chat" element={<ProtectedRoute><CommunityChat /></ProtectedRoute>} />
 
             {/* Games & Arena routes */}
             <Route path="/game/galactic-typist" element={<GalacticTypist />} />

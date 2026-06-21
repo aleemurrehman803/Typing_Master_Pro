@@ -13,7 +13,8 @@ import {
     LogOut,
     Code,
     Swords,
-    BookOpen
+    BookOpen,
+    MessageSquare
 } from 'lucide-react';
 
 const CommandPalette = () => {
@@ -62,6 +63,7 @@ const CommandPalette = () => {
                 { id: 'nav-test', label: 'Start Typing Test', icon: Keyboard, action: () => navigate('/test') },
                 { id: 'nav-learn', label: 'Interactive Lessons', icon: BookOpen, action: () => navigate('/learn') },
                 { id: 'nav-gamification', label: 'Play Mini-Games', icon: Gamepad2, action: () => navigate('/gamification') },
+                { id: 'nav-chat', label: 'Community Chat Grid', icon: MessageSquare, action: () => navigate('/community/chat') },
                 { id: 'nav-arena', label: 'Arena Leaderboard', icon: Trophy, action: () => navigate('/arena') },
                 { id: 'nav-profile', label: 'View Profile', icon: User, action: () => navigate('/profile') }
             ]
