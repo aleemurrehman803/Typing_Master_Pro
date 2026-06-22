@@ -146,6 +146,18 @@ export const DbService = {
         
         if (isSupabaseConfigured) {
             try {
+                // If integrity score is under 50, automatically flag their profile
+                if (integrity_score < 50) {
+                    try {
+                        await supabase
+                            .from('profiles')
+                            .update({ is_flagged: true })
+                            .eq('id', userId);
+                    } catch (flagErr) {
+                        console.warn('[DB] Failed to flag profile for low integrity:', flagErr);
+                    }
+                }
+
                 const { data, error } = await supabase
                     .from('test_results')
                     .insert({
@@ -173,6 +185,14 @@ export const DbService = {
 
         // Fallback local storage
         try {
+            if (integrity_score < 50) {
+                const user = secureStorage.getItem('user');
+                if (user && user.id === userId) {
+                    user.is_flagged = true;
+                    secureStorage.setItem('user', user);
+                }
+            }
+
             const localResults = JSON.parse(localStorage.getItem('recent_tests') || '[]');
             const newEntry = {
                 id: `test_${Date.now()}`,

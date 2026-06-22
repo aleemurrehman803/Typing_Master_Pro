@@ -17,7 +17,7 @@ import { CODE_SNIPPETS } from '../utils/testContent';
 import { getAdaptiveText, getAdaptiveDifficulty, getDifficultyMeta } from '../utils/adaptiveDifficulty';
 import KeyboardVisualization from '../components/features/KeyboardVisualization';
 import { MULTI_LANG_PARAGRAPHS } from '../utils/languageContent';
-import { secureStorage } from '../utils/security';
+import { secureStorage, generateScoreManifest } from '../utils/security';
 import { calculateNextDrill } from '../utils/tutor';
 import { detectKeyboardPolling } from '../utils/hardware';
 import { ShieldCheck, ShieldAlert, Zap, Cpu, BrainCircuit, Loader2, Wand2, Keyboard, ToggleLeft } from 'lucide-react';
@@ -537,17 +537,44 @@ const Test = () => {
                             }
                         });
 
-                        const resultData = {
+                        // Generate telemetry manifest and client hash signature
+                        generateScoreManifest({
                             wpm: freshStats.wpm,
                             accuracy: freshStats.accuracy,
-                            date: new Date().toISOString(),
-                            integrityScore: freshStats.integrity.score
-                        };
+                            duration: duration - timeLeft,
+                            mistakes: freshStats.errors || 0
+                        }, freshStats.keystrokes || []).then(manifest => {
+                            const resultData = {
+                                wpm: freshStats.wpm,
+                                accuracy: freshStats.accuracy,
+                                date: new Date().toISOString(),
+                                duration: duration - timeLeft,
+                                mistakes: freshStats.errors || 0,
+                                testMode: mode || 'time',
+                                language: language || 'english',
+                                integrityScore: freshStats.integrity.score,
+                                clientHash: manifest.sig
+                            };
 
-                        // Feature 20: Persist to secure encrypted storage
-                        secureStorage.set('last_session', resultData);
+                            // Feature 20: Persist to secure encrypted storage
+                            secureStorage.set('last_session', resultData);
 
-                        updateStats(resultData);
+                            updateStats(resultData);
+                        }).catch(err => {
+                            console.error('Failed to generate secure score manifest:', err);
+                            const resultData = {
+                                wpm: freshStats.wpm,
+                                accuracy: freshStats.accuracy,
+                                date: new Date().toISOString(),
+                                duration: duration - timeLeft,
+                                mistakes: freshStats.errors || 0,
+                                testMode: mode || 'time',
+                                language: language || 'english',
+                                integrityScore: freshStats.integrity.score,
+                                clientHash: ''
+                            };
+                            updateStats(resultData);
+                        });
 
                         // Fix: Pass correct arguments to checkAchievements
                         const badges = checkAchievements(freshStats.wpm, freshStats.accuracy, freshStats.user.badges);
